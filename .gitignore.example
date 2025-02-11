@@ -1,0 +1,60 @@
+__pycache__/
+*.egg-info/
+*.spec
+*.log
+*.db
+*.sqlite
+*.pypackage
+*.egg
+*.mo
+*.pot
+.local_settings.py
+db.sqlite3
+db.sqlite3-journal
+instance
+.pytest_cache
+.tox
+.nox
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*.egg
+*.pyc
+*.pyo
+*.mo
+*.pot
+*.po
+dist
+build
+docs/_build
+tox.ini
+.pytest_cache
+.pytest_cache/
+migrations
+static/dist
+static/node_modules
+static/src
+static/test
+
+# ide
+.idea
+
+# virtualenv
+env
+venv
+
+# docker
+.dockerignore
+
+# git
+.git
+
+# all *.txt files under output directory
+output/*.txt
+
+# .env file
+.env
+*.env
+.env.*
+
