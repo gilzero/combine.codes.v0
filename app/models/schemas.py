@@ -39,7 +39,17 @@ class FileStats(BaseModel):
         json_encoders = {
             pathlib.Path: str
         }
-        allow_population_by_field_name = True
+        populate_by_name = True
+
+        @staticmethod
+        def json_schema_extra(schema: Dict[str, Any], model: Type['FileStats']) -> None:
+            """Add computed properties to the schema."""
+            schema['properties']['by_type'] = {
+                'title': 'By Type',
+                'description': 'File statistics grouped by file type',
+                'type': 'object',
+                'additionalProperties': {'type': 'integer'}
+            }
 
     @property
     def avg_lines_per_file(self) -> float:
@@ -55,18 +65,6 @@ class FileStats(BaseModel):
         # Include file_types under both names for compatibility
         d['by_type'] = self.file_types
         return d
-
-    class Config:
-        """Additional configuration for JSON serialization."""
-        @staticmethod
-        def schema_extra(schema: Dict[str, Any], model: Type['FileStats']) -> None:
-            """Add computed properties to the schema."""
-            schema['properties']['by_type'] = {
-                'title': 'By Type',
-                'description': 'File statistics grouped by file type',
-                'type': 'object',
-                'additionalProperties': {'type': 'integer'}
-            }
 
 class TreeNode(BaseModel):
     """Model for directory tree visualization."""

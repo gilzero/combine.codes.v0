@@ -51,7 +51,7 @@
                     <div class="card-body">
                         <h1 class="h5 card-title mb-4">GitHub Repository</h1>
                         
-                        <form id="repo-form" onsubmit="handleRepositorySubmit(event)">
+                        <form id="repository-form">
                             <div class="mb-4">
                                 <label for="repo-url" class="form-label">Repository URL</label>
                                 <div class="input-group">
@@ -124,6 +124,18 @@
     </div>
 
     <!-- Main JavaScript -->
-    <script src="/static/js/main.js"></script>
+    <script type="module">
+        import { initializeTheme, initializeEventListeners, toggleTheme, handleRepositorySubmit } from '/static/js/main.js';
+        
+        // Make functions available globally
+        window.toggleTheme = toggleTheme;
+        window.handleRepositorySubmit = handleRepositorySubmit;
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTheme();
+            initializeEventListeners();
+        });
+    </script>
 </body>
 </html>
