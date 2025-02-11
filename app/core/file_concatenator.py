@@ -1,5 +1,6 @@
 """
 @fileoverview
+app/core/file_concatenator.py
 This module provides the FileConcatenator class, which is responsible for
 concatenating files from a GitHub repository into a single output file.
 It includes methods for walking directories, filtering files, and updating
@@ -41,10 +42,20 @@ class FileConcatenator:
                 raise FileConcatenatorError(f"Directory does not exist: {repo_path}")
             
             self.additional_ignores = additional_ignores or []
-            logger.info(f"Additional ignore patterns: {self.additional_ignores}")
+            logger.info(f"Received additional ignore patterns: {self.additional_ignores}")
             
-            # Use PatternManager for combined ignore patterns
-            self.pattern_manager = PatternManager(user_ignores=self.additional_ignores)
+            # Log the initialization of PatternManager
+            logger.info(f"Initializing PatternManager with repo path: {repo_path}")
+            self.pattern_manager = PatternManager.from_repo_path(self.base_dir)
+            # Include additional ignores
+            self.pattern_manager.user_ignores.extend(self._normalize_patterns(self.additional_ignores))
+            logger.info(f"Repo ignores from .gitignore: {self.pattern_manager.repo_ignores}")
+            logger.info(f"User ignores: {self.pattern_manager.user_ignores}")
+            logger.info(f"All ignore patterns in FileConcatenator: {self.pattern_manager.all_ignores}")
+            
+            # Add additional ignores AND update the combined patterns
+            if additional_ignores:
+                self.pattern_manager.add_user_ignores(additional_ignores)
             
             # Initialize statistics
             self.stats = ConcatenationStats()
@@ -57,6 +68,18 @@ class FileConcatenator:
         except Exception as e:
             logger.error(f"Initialization failed: {str(e)}")
             raise FileConcatenatorError(f"Initialization error: {str(e)}")
+
+    def _normalize_patterns(self, patterns: List[str]) -> List[str]:
+        """
+        Normalize patterns by removing comments and empty lines.
+        
+        Args:
+            patterns (List[str]): List of patterns to normalize.
+            
+        Returns:
+            List[str]: Normalized list of patterns.
+        """
+        return [pattern.strip() for pattern in patterns if pattern.strip() and not pattern.strip().startswith('#')]
 
     def concatenate(self) -> str:
         """
@@ -186,7 +209,9 @@ class FileConcatenator:
         """Check if path should be ignored based on combined patterns."""
         try:
             rel_path = str(path.relative_to(self.base_dir))
-            return self.pattern_manager.should_ignore(rel_path)
+            is_ignored = self.pattern_manager.should_ignore(rel_path)
+            logger.debug(f"Checking if {rel_path} should be ignored: {is_ignored}")
+            return is_ignored
         except Exception as e:
             logger.error(f"Error checking ignore status for {path}: {e}")
             return True

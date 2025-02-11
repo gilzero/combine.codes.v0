@@ -1,4 +1,5 @@
 """
+app/api/routes.py
 API routes for the File Concatenator application.
 """
 from fastapi import APIRouter, HTTPException, Request
@@ -27,6 +28,7 @@ from app.models.schemas import (
     FileSystemError,
     CacheError,
 )
+from app.config.pattern_manager import PatternManager
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -176,9 +178,16 @@ async def concatenate_repository(request: ConcatenateRequest) -> ConcatenateResp
                 request.github_token
             )
             
+            # Use PatternManager to combine ignore patterns
+            pattern_manager = PatternManager(user_ignores=request.additional_ignores)
+            combined_ignores = pattern_manager.all_ignores
+            
+            # Log combined ignore patterns
+            logger.info(f"Combined ignore patterns: {combined_ignores}")
+            
             concatenator = FileConcatenator(
                 repo_path=clone_result.repo_path,
-                additional_ignores=request.additional_ignores
+                additional_ignores=combined_ignores
             )
             
             output_file = concatenator.concatenate()
