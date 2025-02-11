@@ -317,6 +317,8 @@ async function handleRepositorySubmit(event) {
         const preCheckData = await preCheckResponse.json();
         
         // Show repository information and payment confirmation
+        updateRepositoryDetails(preCheckData);
+        
         const confirmationHtml = `
             <div class="card">
                 <div class="card-header">
@@ -328,10 +330,10 @@ async function handleRepositorySubmit(event) {
                         <dd class="col-sm-8">${preCheckData.owner}/${preCheckData.repo_name}</dd>
                         
                         <dt class="col-sm-4">Estimated Files:</dt>
-                        <dd class="col-sm-8">${preCheckData.estimated_file_count}</dd>
+                        <dd class="col-sm-8">${preCheckData.estimated_file_count || 'Calculating...'}</dd>
                         
                         <dt class="col-sm-4">Repository Size:</dt>
-                        <dd class="col-sm-8">${(preCheckData.repository_size_kb / 1024).toFixed(2)} MB</dd>
+                        <dd class="col-sm-8">${preCheckData.repository_size_kb ? formatFileSize(preCheckData.repository_size_kb * 1024) : 'Calculating...'}</dd>
                         
                         <dt class="col-sm-4">Price:</dt>
                         <dd class="col-sm-8">$${preCheckData.price_usd.toFixed(2)} USD</dd>
@@ -590,6 +592,32 @@ function displayResults(data) {
     
     // Trigger confetti animation
     triggerConfetti();
+}
+
+function updateRepositoryDetails(preCheckData) {
+    const detailsHtml = `
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Repository Details</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Repository:</dt>
+                    <dd class="col-sm-8">${preCheckData.owner}/${preCheckData.repo_name}</dd>
+                    
+                    <dt class="col-sm-4">Estimated Files:</dt>
+                    <dd class="col-sm-8">${preCheckData.estimated_file_count ? formatNumber(preCheckData.estimated_file_count) : 'Calculating...'}</dd>
+                    
+                    <dt class="col-sm-4">Repository Size:</dt>
+                    <dd class="col-sm-8">${preCheckData.repository_size_kb ? formatFileSize(preCheckData.repository_size_kb * 1024) : 'Calculating...'}</dd>
+                    
+                    <dt class="col-sm-4">Price:</dt>
+                    <dd class="col-sm-8">$${preCheckData.price_usd.toFixed(2)} USD</dd>
+                </dl>
+            </div>
+        </div>
+    `;
+    document.getElementById('repository-details').innerHTML = detailsHtml;
 }
 
 // Event Listeners

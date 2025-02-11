@@ -66,7 +66,7 @@ async def pre_check_repository(request: RepositoryPreCheckRequest) -> Repository
     """
     try:
         # Validate repository URL and check accessibility
-        await github_handler.pre_check_repository(str(request.repo_url), request.github_token)
+        repo_info = await github_handler.pre_check_repository(str(request.repo_url), request.github_token)
 
         # Create Stripe checkout session
         success_url = str(request.base_url).rstrip('/') + "/success?session_id={CHECKOUT_SESSION_ID}"
@@ -90,13 +90,12 @@ async def pre_check_repository(request: RepositoryPreCheckRequest) -> Repository
             cancel_url=cancel_url,
             metadata={
                 'repo_url': str(request.repo_url),
-                'github_token': request.github_token or ''
+                'github_token': request.github_token or '',
+                'repository_size_kb': str(repo_info.size_kb or ''),
+                'estimated_file_count': str(repo_info.file_count or '')
             }
         )
 
-        # Extract repository info from URL
-        repo_info = github_handler.validate_github_url(str(request.repo_url))
-        
         return RepositoryPreCheckResponse(
             repo_name=repo_info.repo_name,
             owner=repo_info.owner,

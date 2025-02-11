@@ -17,6 +17,8 @@ import shutil
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse
+from pathspec import PathSpec
+from pathspec.patterns import GitWildMatchPattern
 
 from app.models.schemas import (
     GitHubConfig,
@@ -30,6 +32,7 @@ from app.models.schemas import (
     FileSystemError,
     CacheError
 )
+from app.config.ignore_patterns import get_system_ignores
 
 logger = logging.getLogger(__name__)
 
@@ -178,55 +181,119 @@ class GitHubHandler:
 
     async def pre_check_repository(self, repo_url: str, github_token: Optional[str] = None) -> GitHubRepoInfo:
         """
-        Quick check if a repository exists and is accessible without cloning.
-        Uses git ls-remote for lightweight validation and calculates repository size.
+        Quick check if a repository exists and is accessible.
+        Does a lightweight clone to get accurate file information.
         """
         try:
             # Parse repository URL and get info
             repo_info = self.validate_github_url(repo_url)
             logger.info(f"Validating repository URL: {repo_url}")
             
-            # Modify URL if token is provided
-            clone_url = repo_info.clone_url
-            if github_token or self.config.github_token:
-                token = github_token or self.config.github_token
-                clone_url = clone_url.replace("https://", f"https://{token}@")
+            # Create a temporary directory for the clone
+            temp_dir = Path(tempfile.mkdtemp(prefix="repo_precheck_"))
+            
+            try:
+                # Modify URL if token is provided
+                clone_url = repo_info.clone_url
+                if github_token or self.config.github_token:
+                    token = github_token or self.config.github_token
+                    clone_url = clone_url.replace("https://", f"https://{token}@")
 
-            # Use ThreadPoolExecutor for blocking git operations
-            def check_repo():
+                # Use ThreadPoolExecutor for blocking git operations
+                def check_repo():
+                    try:
+                        # Do a shallow clone (depth=1) to minimize download
+                        logger.info(f"Performing shallow clone to check repository")
+                        git.Repo.clone_from(clone_url, temp_dir, depth=1, branch="main")  # Explicitly checkout main branch
+                        repo = git.Repo(temp_dir)
+
+                        # Load repository's .gitignore patterns if they exist
+                        repo_ignores = []
+                        gitignore_path = temp_dir / ".gitignore"
+                        if gitignore_path.exists():
+                            with open(gitignore_path, "r") as f:
+                                repo_ignores = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+                        
+                        # Get combined ignore patterns
+                        from app.config.ignore_patterns import combine_ignore_patterns
+                        all_ignores = combine_ignore_patterns(repo_ignores)
+                        logger.info("Using combined ignore patterns:")
+                        for pattern in all_ignores:
+                            logger.info(f"- {pattern}")
+
+                        # Calculate actual file information
+                        total_size = 0
+                        file_count = 0
+
+                        # Walk through the repository
+                        target_dir = temp_dir
+                        if repo_info.subdir:
+                            target_dir = temp_dir / repo_info.subdir
+                            if not target_dir.exists():
+                                logger.warning(f"Subdirectory not found at expected path: {target_dir}")
+                                raise FileSystemError(f"Specified directory not found: {repo_info.subdir}")
+
+                        for root, _, files in os.walk(target_dir):
+                            # Skip ignored directories
+                            rel_root = str(Path(root).relative_to(temp_dir))
+                            if any(PathSpec.from_lines(GitWildMatchPattern, [pattern]).match_file(rel_root) 
+                                  for pattern in all_ignores):
+                                continue
+                            
+                            for file in files:
+                                file_path = Path(root) / file
+                                rel_path = str(file_path.relative_to(temp_dir))
+                                
+                                # Skip ignored files
+                                if any(PathSpec.from_lines(GitWildMatchPattern, [pattern]).match_file(rel_path) 
+                                      for pattern in all_ignores):
+                                    continue
+                                
+                                try:
+                                    # Get actual file size
+                                    size = file_path.stat().st_size
+                                    total_size += size
+                                    file_count += 1
+                                except Exception as e:
+                                    logger.warning(f"Error getting file info for {file_path}: {e}")
+
+                        # Convert total size to KB
+                        size_kb = total_size / 1024
+
+                        logger.info(f"Repository scan results for {repo_info.base_url}:")
+                        logger.info(f"Total files: {file_count}")
+                        logger.info(f"Total size: {size_kb:.2f}KB")
+
+                        repo_info.size_kb = float(size_kb)
+                        repo_info.file_count = int(file_count)
+                        return True
+
+                    except git.exc.GitCommandError as e:
+                        error_msg = str(e).lower()
+                        if "not found" in error_msg or "repository not found" in error_msg:
+                            raise RepositoryNotFoundError(repo_info.base_url)
+                        elif "authentication" in error_msg or "authorization" in error_msg:
+                            raise AuthenticationError("Repository requires authentication")
+                        else:
+                            raise GitHubError(f"Git error: {error_msg}")
+
+                await asyncio.get_event_loop().run_in_executor(
+                    self._executor,
+                    check_repo
+                )
+
+                return repo_info
+
+            finally:
+                # Clean up temporary directory
                 try:
-                    # git ls-remote is lightweight and tells us if repo exists/is accessible
-                    git_output = git.cmd.Git().ls_remote(clone_url, "--refs")
-                    
-                    # Calculate repository size and file count from ls-remote output
-                    refs = git_output.split('\n')
-                    # Rough estimation: each ref is approximately 1KB of data
-                    estimated_size_kb = len(refs) * 1
-                    # Rough estimation: number of files based on number of refs
-                    estimated_files = max(len(refs) * 5, 10)  # Assume at least 10 files
-                    
-                    repo_info.size_kb = estimated_size_kb
-                    repo_info.file_count = estimated_files
-                    return True
-                except git.exc.GitCommandError as e:
-                    error_msg = str(e).lower()
-                    if "not found" in error_msg or "repository not found" in error_msg:
-                        raise RepositoryNotFoundError(repo_info.base_url)
-                    elif "authentication" in error_msg or "authorization" in error_msg:
-                        raise AuthenticationError("Repository requires authentication")
-                    else:
-                        raise GitHubError(f"Git error: {error_msg}")
-
-            await asyncio.get_event_loop().run_in_executor(
-                self._executor,
-                check_repo
-            )
-
-            return repo_info
+                    shutil.rmtree(temp_dir)
+                except Exception as e:
+                    logger.error(f"Error cleaning up temporary directory: {e}")
 
         except Exception as e:
             logger.error(f"Error pre-checking repository: {str(e)}", exc_info=True)
-            if isinstance(e, (RepositoryNotFoundError, AuthenticationError, GitHubError)):
+            if isinstance(e, (RepositoryNotFoundError, AuthenticationError, GitHubError, FileSystemError)):
                 raise
             raise GitHubError(f"Unexpected error while checking repository: {str(e)}")
 

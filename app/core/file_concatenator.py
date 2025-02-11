@@ -21,48 +21,6 @@ from app.models.schemas import (
 logger = logging.getLogger(__name__)
 
 class FileConcatenator:
-    # System-wide ignore patterns
-    SYSTEM_IGNORES = [
-        # Version control
-        ".git/",
-        ".svn/",
-        ".hg/",
-        
-        # Dependencies and build artifacts
-        "node_modules/",
-        "venv/",
-        "__pycache__/",
-        "*.pyc",
-        "*.pyo",
-        "*.pyd",
-        "build/",
-        "dist/",
-        "*.egg-info/",
-        
-        # IDE and editor files
-        ".idea/",
-        ".vscode/",
-        "*.swp",
-        "*.swo",
-        ".DS_Store",
-        
-        # Common build and test directories
-        "coverage/",
-        ".coverage",
-        ".pytest_cache/",
-        ".tox/",
-        
-        # Large binary and media files
-        "*.zip",
-        "*.tar.gz",
-        "*.rar",
-        "*.mp4",
-        "*.mp3",
-        "*.avi",
-        "*.mov",
-        "*.iso"
-    ]
-
     def __init__(self, repo_path: pathlib.Path, additional_ignores: List[str] = None):
         try:
             logger.info(f"Initializing concatenator for repository: {repo_path}")
@@ -76,10 +34,8 @@ class FileConcatenator:
             # Initialize statistics
             self.stats = ConcatenationStats()
             
-            # Load gitignore patterns and combine with system and additional ignores
-            self.gitignore_patterns = self._load_gitignore()
-            all_patterns = self.SYSTEM_IGNORES + self.gitignore_patterns + self.additional_ignores
-            self.gitignore_spec = PathSpec.from_lines(GitWildMatchPattern, all_patterns)
+            # Only use additional ignores, skip system and gitignore patterns
+            self.gitignore_spec = PathSpec.from_lines(GitWildMatchPattern, self.additional_ignores)
             
             # Create output directory if it doesn't exist
             self.output_dir = pathlib.Path("output")
@@ -143,25 +99,6 @@ class FileConcatenator:
             logger.error(f"Concatenation failed: {str(e)}")
             raise FileConcatenatorError(f"Concatenation error: {str(e)}")
 
-    def _load_gitignore(self) -> List[str]:
-        """Load .gitignore patterns if the file exists."""
-        gitignore_path = self.base_dir / ".gitignore"
-        patterns = []
-        try:
-            logger.info(f"Loading gitignore from: {gitignore_path}")
-            if gitignore_path.exists():
-                with open(gitignore_path, "r") as f:
-                    patterns = [line.strip() for line in f if line.strip() 
-                              and not line.startswith("#")]
-                logger.info(f"Successfully loaded {len(patterns)} gitignore patterns")
-            else:
-                logger.warning("No gitignore file found")
-        except Exception as e:
-            logger.error(f"Failed to read gitignore: {e}")
-            logger.warning("Proceeding with empty gitignore patterns")
-        
-        return patterns
-
     def _is_comment_line(self, line: str) -> bool:
         """Check if a line is a comment based on common comment markers."""
         comment_markers = ['#', '//', '/*', '*', '<!--', '-->', '"""', "'''"]
@@ -219,7 +156,7 @@ class FileConcatenator:
         if is_gitignore:
             self.stats.filter_stats.gitignore_filtered += 1
             # Check which gitignore pattern matched
-            for pattern in self.gitignore_patterns:
+            for pattern in self.additional_ignores:
                 if PathSpec.from_lines(GitWildMatchPattern, [pattern]).match_file(rel_path):
                     self.stats.filter_stats.pattern_matches[pattern] = \
                         self.stats.filter_stats.pattern_matches.get(pattern, 0) + 1
@@ -237,15 +174,9 @@ class FileConcatenator:
             rel_path = str(path.relative_to(self.base_dir))
             
             # Check gitignore patterns first
-            for pattern in self.gitignore_patterns:
-                if PathSpec.from_lines(GitWildMatchPattern, [pattern]).match_file(rel_path):
-                    self._update_filter_stats(path, True)
-                    return True
-            
-            # Then check additional patterns
             for pattern in self.additional_ignores:
                 if PathSpec.from_lines(GitWildMatchPattern, [pattern]).match_file(rel_path):
-                    self._update_filter_stats(path, False)
+                    self._update_filter_stats(path, True)
                     return True
             
             return False
