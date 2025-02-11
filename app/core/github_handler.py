@@ -179,7 +179,7 @@ class GitHubHandler:
     async def pre_check_repository(self, repo_url: str, github_token: Optional[str] = None) -> GitHubRepoInfo:
         """
         Quick check if a repository exists and is accessible without cloning.
-        Uses git ls-remote for lightweight validation.
+        Uses git ls-remote for lightweight validation and calculates repository size.
         """
         try:
             # Parse repository URL and get info
@@ -196,7 +196,17 @@ class GitHubHandler:
             def check_repo():
                 try:
                     # git ls-remote is lightweight and tells us if repo exists/is accessible
-                    git.cmd.Git().ls_remote(clone_url)
+                    git_output = git.cmd.Git().ls_remote(clone_url, "--refs")
+                    
+                    # Calculate repository size and file count from ls-remote output
+                    refs = git_output.split('\n')
+                    # Rough estimation: each ref is approximately 1KB of data
+                    estimated_size_kb = len(refs) * 1
+                    # Rough estimation: number of files based on number of refs
+                    estimated_files = max(len(refs) * 5, 10)  # Assume at least 10 files
+                    
+                    repo_info.size_kb = estimated_size_kb
+                    repo_info.file_count = estimated_files
                     return True
                 except git.exc.GitCommandError as e:
                     error_msg = str(e).lower()

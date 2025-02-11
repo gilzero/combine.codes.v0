@@ -147,6 +147,8 @@ class GitHubRepoInfo(BaseModel):
     subdir: Optional[str] = None
     base_url: str
     clone_url: str
+    size_kb: Optional[float] = None
+    file_count: Optional[int] = None
     
     class Config:
         """Pydantic model configuration."""
@@ -277,6 +279,8 @@ class RepositoryPreCheckResponse(BaseModel):
     checkout_session_id: str
     status: str = "ready"
     message: Optional[str] = None
+    repository_size_kb: Optional[float] = None
+    estimated_file_count: Optional[int] = None
 
 class PaymentVerificationRequest(BaseModel):
     """Request model for payment verification."""

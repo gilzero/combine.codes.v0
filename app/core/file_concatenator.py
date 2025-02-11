@@ -21,6 +21,48 @@ from app.models.schemas import (
 logger = logging.getLogger(__name__)
 
 class FileConcatenator:
+    # System-wide ignore patterns
+    SYSTEM_IGNORES = [
+        # Version control
+        ".git/",
+        ".svn/",
+        ".hg/",
+        
+        # Dependencies and build artifacts
+        "node_modules/",
+        "venv/",
+        "__pycache__/",
+        "*.pyc",
+        "*.pyo",
+        "*.pyd",
+        "build/",
+        "dist/",
+        "*.egg-info/",
+        
+        # IDE and editor files
+        ".idea/",
+        ".vscode/",
+        "*.swp",
+        "*.swo",
+        ".DS_Store",
+        
+        # Common build and test directories
+        "coverage/",
+        ".coverage",
+        ".pytest_cache/",
+        ".tox/",
+        
+        # Large binary and media files
+        "*.zip",
+        "*.tar.gz",
+        "*.rar",
+        "*.mp4",
+        "*.mp3",
+        "*.avi",
+        "*.mov",
+        "*.iso"
+    ]
+
     def __init__(self, repo_path: pathlib.Path, additional_ignores: List[str] = None):
         try:
             logger.info(f"Initializing concatenator for repository: {repo_path}")
@@ -34,9 +76,9 @@ class FileConcatenator:
             # Initialize statistics
             self.stats = ConcatenationStats()
             
-            # Load gitignore patterns and combine with additional ignores
+            # Load gitignore patterns and combine with system and additional ignores
             self.gitignore_patterns = self._load_gitignore()
-            all_patterns = self.gitignore_patterns + self.additional_ignores
+            all_patterns = self.SYSTEM_IGNORES + self.gitignore_patterns + self.additional_ignores
             self.gitignore_spec = PathSpec.from_lines(GitWildMatchPattern, all_patterns)
             
             # Create output directory if it doesn't exist

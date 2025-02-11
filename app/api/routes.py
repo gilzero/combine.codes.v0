@@ -103,7 +103,9 @@ async def pre_check_repository(request: RepositoryPreCheckRequest) -> Repository
             price_usd=0.50,
             checkout_session_id=checkout_session.id,
             status="ready",
-            message="Repository is accessible and ready for processing"
+            message="Repository is accessible and ready for processing",
+            repository_size_kb=repo_info.size_kb,
+            estimated_file_count=repo_info.file_count
         )
 
     except (GitHubError, stripe.error.StripeError) as e:
