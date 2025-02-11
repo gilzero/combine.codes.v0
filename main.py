@@ -4,6 +4,11 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from app.utils.logging_config import setup_logging
 from app.api.routes import router
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Setup logging
 logger = setup_logging()

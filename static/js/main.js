@@ -3,6 +3,11 @@ let ignorePatterns = [];
 let currentRepoName = '';
 let lastRequest = null;
 
+// Initialize Stripe
+const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+
+let activeCheckoutSessionId = null;
+
 // Utility functions
 function generateUniqueId() {
     return 'xxxxxxxx'.replace(/[x]/g, function(c) {
@@ -220,59 +225,228 @@ async function exportAsPDF() {
 }
 
 // Main functionality
-async function concatenateFiles() {
-    const repoUrl = document.getElementById('repoUrl').value;
-    const githubToken = document.getElementById('githubToken').value;
-    const additionalIgnores = document.getElementById('additionalIgnores').value
-        .split('\n')
-        .filter(line => line.trim());
-    const status = document.getElementById('status');
-    const result = document.getElementById('result');
+function showError(message) {
+    const errorArea = document.getElementById('error-area');
+    errorArea.innerHTML = `
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+}
 
-    lastRequest = {
-        repo_url: repoUrl,
-        github_token: githubToken,
-        additional_ignores: additionalIgnores
-    };
+function showProcessing(show = true) {
+    const processingArea = document.getElementById('processing-area');
+    if (show) {
+        processingArea.classList.remove('d-none');
+    } else {
+        processingArea.classList.add('d-none');
+    }
+}
 
-    status.classList.remove('d-none');
-    result.innerHTML = '';
+async function handleRepositorySubmit(event) {
+    event.preventDefault();
+    
+    // Clear previous errors and results
+    document.getElementById('error-area').innerHTML = '';
+    document.getElementById('confirmation-area').innerHTML = '';
+    document.getElementById('result-area').innerHTML = '';
+    
+    const repoUrl = document.getElementById('repo-url').value;
+    const githubToken = document.getElementById('github-token').value;
+    
+    if (!repoUrl) {
+        showError('Please enter a GitHub repository URL');
+        return;
+    }
+    
+    showProcessing(true);
+    
+    try {
+        // First, do pre-check
+        const preCheckResponse = await fetch('/pre-check', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                repo_url: repoUrl,
+                github_token: githubToken || null,
+                base_url: window.location.origin + '/'
+            }),
+        });
+        
+        showProcessing(false);
+        
+        if (!preCheckResponse.ok) {
+            const error = await preCheckResponse.json();
+            console.log('Error response:', error);
+            
+            let errorMessage = error.detail.message || 'Failed to process repository';
+            let suggestionMessage = '';
+            
+            // Add specific suggestions based on error type
+            switch (error.detail.error_type) {
+                case 'InvalidTokenFormat':
+                    suggestionMessage = 'Please check your token format and try again.';
+                    break;
+                case 'InsufficientPermissions':
+                    suggestionMessage = 'Please ensure your token has the required permissions (repo scope).';
+                    break;
+                case 'RateLimitExceeded':
+                    suggestionMessage = 'Please try again later or provide a GitHub token to increase rate limits.';
+                    break;
+                case 'RepositoryNotFound':
+                    if (error.detail.requires_token) {
+                        suggestionMessage = 'This might be a private repository. Try providing a GitHub token.';
+                    } else {
+                        suggestionMessage = 'Please check the repository URL and try again.';
+                    }
+                    break;
+                case 'AuthenticationError':
+                    suggestionMessage = 'Please provide a valid GitHub token and try again.';
+                    break;
+            }
+            
+            // Show error with suggestion if available
+            showError(`${errorMessage}${suggestionMessage ? '\n\n' + suggestionMessage : ''}`);
+            return;
+        }
+        
+        const preCheckData = await preCheckResponse.json();
+        
+        // Show repository information and payment confirmation
+        const confirmationHtml = `
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Repository Details</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Repository:</dt>
+                        <dd class="col-sm-8">${preCheckData.owner}/${preCheckData.repo_name}</dd>
+                        
+                        <dt class="col-sm-4">Estimated Files:</dt>
+                        <dd class="col-sm-8">${preCheckData.estimated_file_count}</dd>
+                        
+                        <dt class="col-sm-4">Repository Size:</dt>
+                        <dd class="col-sm-8">${(preCheckData.repository_size_kb / 1024).toFixed(2)} MB</dd>
+                        
+                        <dt class="col-sm-4">Price:</dt>
+                        <dd class="col-sm-8">$${preCheckData.price_usd.toFixed(2)} USD</dd>
+                    </dl>
+                </div>
+                <div class="card-footer text-end">
+                    <button type="button" id="cancel-payment" class="btn btn-secondary me-2">Cancel</button>
+                    <button type="button" id="proceed-payment" class="btn btn-primary">
+                        <i class="bi bi-credit-card me-2"></i>Proceed to Payment
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('confirmation-area').innerHTML = confirmationHtml;
+        
+        // Store checkout session ID
+        activeCheckoutSessionId = preCheckData.checkout_session_id;
+        
+        // Add event listeners
+        document.getElementById('proceed-payment').addEventListener('click', handlePayment);
+        document.getElementById('cancel-payment').addEventListener('click', () => {
+            document.getElementById('confirmation-area').innerHTML = '';
+        });
+        
+    } catch (error) {
+        console.error('Error:', error);
+        showError('An unexpected error occurred. Please try again later.');
+    }
+}
 
+async function handlePayment() {
+    try {
+        // Redirect to Stripe Checkout
+        const result = await stripe.redirectToCheckout({
+            sessionId: activeCheckoutSessionId
+        });
+        
+        if (result.error) {
+            throw new Error(result.error.message);
+        }
+    } catch (error) {
+        console.error('Payment error:', error);
+        showError('Payment failed. Please try again.');
+    }
+}
+
+async function verifyPayment(sessionId) {
+    try {
+        const response = await fetch('/verify-payment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                checkout_session_id: sessionId
+            }),
+        });
+        
+        if (!response.ok) {
+            throw new Error('Payment verification failed');
+        }
+        
+        const data = await response.json();
+        
+        if (data.can_proceed) {
+            // Payment successful, proceed with concatenation
+            processConcatenation(sessionId);
+        } else if (data.status === 'pending') {
+            // Check again in 2 seconds
+            setTimeout(() => verifyPayment(sessionId), 2000);
+        } else {
+            showError(data.message);
+        }
+    } catch (error) {
+        console.error('Verification error:', error);
+        showError('Payment verification failed. Please try again.');
+    }
+}
+
+async function processConcatenation(sessionId) {
     try {
         const response = await fetch('/concatenate', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(lastRequest)
+            body: JSON.stringify({
+                repo_url: document.getElementById('repo-url').value,
+                github_token: document.getElementById('github-token').value || null,
+                checkout_session_id: sessionId
+            }),
         });
-
-        const data = await response.json();
-
+        
         if (!response.ok) {
-            displayError(data);
-            return;
+            throw new Error('Concatenation failed');
         }
-
-        // Process and display results
-        displayResults(data);
-        triggerConfetti();
-
+        
+        const result = await response.json();
+        displayResults(result);
     } catch (error) {
-        displayError({
-            detail: {
-                status: "error",
-                message: "Network error occurred while processing your request.",
-                error_type: "NetworkError",
-                details: {
-                    help: "Please check your internet connection and try again."
-                }
-            }
-        });
-    } finally {
-        status.classList.add('d-none');
+        console.error('Concatenation error:', error);
+        showError('Failed to concatenate files. Please try again.');
     }
 }
+
+// Check for payment success on page load
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session_id');
+    
+    if (sessionId) {
+        verifyPayment(sessionId);
+    }
+});
 
 function displayResults(data) {
     const result = document.getElementById('result');
@@ -426,8 +600,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initializeEventListeners() {
     // Input validation
-    document.getElementById('repoUrl').addEventListener('input', validateInput);
-    document.getElementById('repoUrl').addEventListener('paste', validateInput);
+    document.getElementById('repo-url').addEventListener('input', validateInput);
+    document.getElementById('repo-url').addEventListener('paste', validateInput);
 
     // Keyboard navigation
     document.addEventListener('keydown', function(e) {

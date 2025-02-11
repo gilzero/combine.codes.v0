@@ -5,13 +5,15 @@ Pydantic models for the File Concatenator application.
 from pydantic import BaseModel, HttpUrl
 from typing import List, Dict, Optional, Union, Any, Type
 import pathlib
-from datetime import datetime
+from datetime import datetime, timedelta
+from enum import Enum
 
 class ConcatenateRequest(BaseModel):
     """Request model for file concatenation."""
     repo_url: HttpUrl
     github_token: Optional[str] = None
     additional_ignores: Optional[List[str]] = []
+    checkout_session_id: str
 
 class ConcatenateResponse(BaseModel):
     """Response model for file concatenation."""
@@ -251,4 +253,99 @@ class ValidationError(FileConcatenatorError):
             f"Validation error: {message}",
             status_code=400,
             details=details
-        ) 
+        )
+
+class RepositoryPreCheckRequest(BaseModel):
+    """Request model for repository pre-check."""
+    repo_url: HttpUrl
+    github_token: Optional[str] = None
+    base_url: HttpUrl  # URL of the application for Stripe success/cancel redirects
+
+class RepositoryPreCheckResponse(BaseModel):
+    """Response model for repository pre-check."""
+    repo_name: str
+    owner: str
+    estimated_file_count: int
+    repository_size_kb: float
+    price_usd: float = 0.50
+    checkout_session_id: str
+    status: str = "ready"
+    message: Optional[str] = None
+
+class PaymentVerificationRequest(BaseModel):
+    """Request model for payment verification."""
+    checkout_session_id: str
+
+class PaymentStatus(str, Enum):
+    """Payment status enumeration."""
+    PENDING = "pending"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+class PaymentVerificationResponse(BaseModel):
+    """Response model for payment verification."""
+    status: PaymentStatus
+    message: str
+    can_proceed: bool = False
+
+class GitHubConfig(BaseModel):
+    """Configuration model for GitHub handler."""
+    cache_dir: Optional[str] = None
+    github_token: Optional[str] = None
+    cache_ttl: int = 3600  # Default 1 hour
+    max_workers: int = 4
+
+    @property
+    def cache_ttl_delta(self) -> timedelta:
+        """Convert cache_ttl to timedelta."""
+        return timedelta(hours=self.cache_ttl if self.cache_ttl is not None else 1)
+
+    class Config:
+        """Pydantic model configuration."""
+        json_encoders = {
+            pathlib.Path: str,
+            timedelta: lambda v: v.total_seconds() // 3600
+        }
+
+class GitHubRepoInfo(BaseModel):
+    """Model for GitHub repository information."""
+    owner: str
+    repo_name: str
+    subdir: Optional[str] = None
+    base_url: str
+    clone_url: str
+    size: Optional[int] = 0
+    estimated_file_count: Optional[int] = 0
+    
+    class Config:
+        """Pydantic model configuration."""
+        json_encoders = {
+            pathlib.Path: str
+        }
+
+class CacheInfo(BaseModel):
+    """Model for cache information."""
+    cache_path: pathlib.Path
+    is_valid: bool
+    created_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    
+    class Config:
+        """Pydantic model configuration."""
+        json_encoders = {
+            pathlib.Path: str,
+            datetime: lambda v: v.isoformat() if v else None
+        }
+
+class CloneResult(BaseModel):
+    """Model for clone operation result."""
+    repo_path: pathlib.Path
+    subdir: Optional[str] = None
+    from_cache: bool = False
+    cache_info: Optional[CacheInfo] = None
+    
+    class Config:
+        """Pydantic model configuration."""
+        json_encoders = {
+            pathlib.Path: str
+        } 
