@@ -1,6 +1,10 @@
 """
-Main application entry point for the File Concatenator service.
+@fileoverview
+This is the main entry point for the File Concatenator application. It sets up
+the FastAPI application, configures middleware, mounts static files, and includes
+API routes. It also handles environment variable loading and logging configuration.
 """
+
 import os
 import logging
 from pathlib import Path
@@ -11,6 +15,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from app.utils.logging_config import setup_logging
 from app.api.routes import router
+from contextlib import asynccontextmanager
 
 # Load environment variables from .env file
 load_dotenv()
@@ -51,16 +56,25 @@ app.include_router(router, prefix="")
 Path("output").mkdir(exist_ok=True)
 Path("cache").mkdir(exist_ok=True)
 
-# Log configuration on startup
-@app.on_event("startup")
-async def startup_event():
-    """Log configuration on startup."""
+# Define lifespan context manager
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler for startup and shutdown."""
+    # Startup actions
     logger.info("Starting File Concatenator service")
     logger.info(f"Environment: {os.getenv('ENV', 'development')}")
     logger.info(f"GitHub token configured: {'Yes' if os.getenv('GITHUB_TOKEN') else 'No'}")
     logger.info(f"Stripe configuration: {'Yes' if os.getenv('STRIPE_SECRET_KEY') else 'No'}")
     logger.info(f"Cache directory: {os.getenv('CACHE_DIR', 'cache')}")
     logger.info(f"Cache TTL: {os.getenv('CACHE_TTL', '3600')} seconds")
+    
+    yield  # This is where the application runs
+
+    # Shutdown actions (if any)
+    logger.info("Shutting down File Concatenator service")
+
+# Assign the lifespan context manager to the app
+app.lifespan = lifespan
 
 if __name__ == "__main__":
     import uvicorn

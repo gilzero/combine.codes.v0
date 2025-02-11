@@ -1,5 +1,8 @@
 """
-Pydantic models for the File Concatenator application.
+@fileoverview
+This module defines Pydantic models for the File Concatenator application.
+These models are used for request and response validation, as well as
+representing various data structures and exceptions within the application.
 """
 
 from pydantic import BaseModel, HttpUrl

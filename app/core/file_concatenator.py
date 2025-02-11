@@ -1,5 +1,9 @@
 """
-File concatenation module for the File Concatenator application.
+@fileoverview
+This module provides the FileConcatenator class, which is responsible for
+concatenating files from a GitHub repository into a single output file.
+It includes methods for walking directories, filtering files, and updating
+statistics related to the concatenation process.
 """
 import pathlib
 from pathspec import PathSpec
@@ -17,11 +21,19 @@ from app.models.schemas import (
     FileConcatenatorError,
     TreeNode
 )
+from app.config.pattern_manager import PatternManager
 
 logger = logging.getLogger(__name__)
 
 class FileConcatenator:
     def __init__(self, repo_path: pathlib.Path, additional_ignores: List[str] = None):
+        """
+        Initialize the FileConcatenator with a repository path and optional ignore patterns.
+        
+        Args:
+            repo_path (pathlib.Path): Path to the repository to process.
+            additional_ignores (List[str], optional): Additional ignore patterns.
+        """
         try:
             logger.info(f"Initializing concatenator for repository: {repo_path}")
             self.base_dir = pathlib.Path(repo_path).resolve()
@@ -31,11 +43,11 @@ class FileConcatenator:
             self.additional_ignores = additional_ignores or []
             logger.info(f"Additional ignore patterns: {self.additional_ignores}")
             
+            # Use PatternManager for combined ignore patterns
+            self.pattern_manager = PatternManager(user_ignores=self.additional_ignores)
+            
             # Initialize statistics
             self.stats = ConcatenationStats()
-            
-            # Only use additional ignores, skip system and gitignore patterns
-            self.gitignore_spec = PathSpec.from_lines(GitWildMatchPattern, self.additional_ignores)
             
             # Create output directory if it doesn't exist
             self.output_dir = pathlib.Path("output")
@@ -49,7 +61,9 @@ class FileConcatenator:
     def concatenate(self) -> str:
         """
         Concatenate all files in the repository.
-        Returns the path to the concatenated file.
+        
+        Returns:
+            str: The path to the concatenated file.
         """
         try:
             repo_name = self._get_repo_name()
@@ -169,17 +183,10 @@ class FileConcatenator:
                         self.stats.filter_stats.pattern_matches.get(pattern, 0) + 1
 
     def _is_ignored(self, path: pathlib.Path) -> bool:
-        """Check if path should be ignored based on .gitignore rules."""
+        """Check if path should be ignored based on combined patterns."""
         try:
             rel_path = str(path.relative_to(self.base_dir))
-            
-            # Check gitignore patterns first
-            for pattern in self.additional_ignores:
-                if PathSpec.from_lines(GitWildMatchPattern, [pattern]).match_file(rel_path):
-                    self._update_filter_stats(path, True)
-                    return True
-            
-            return False
+            return self.pattern_manager.should_ignore(rel_path)
         except Exception as e:
             logger.error(f"Error checking ignore status for {path}: {e}")
             return True

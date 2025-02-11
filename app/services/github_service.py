@@ -1,6 +1,9 @@
 """
-GitHub service for handling repository operations.
-This service provides high-level operations for validating and processing GitHub repositories.
+@fileoverview
+This module defines the GitHubService class, which provides high-level operations
+for validating and processing GitHub repositories. It includes methods for
+validating GitHub URLs, processing repositories by cloning and concatenating files,
+and handling various exceptions related to GitHub operations.
 """
 
 from typing import Tuple, Optional, Dict, Any
@@ -10,7 +13,7 @@ import logging
 from pathlib import Path
 
 from app.core.github_handler import GitHubHandler
-from app.core.concatenator import FileConcatenator
+from app.core.file_concatenator import FileConcatenator
 from app.models.schemas import (
     InvalidRepositoryError,
     RepositoryNotFoundError,
@@ -24,7 +27,7 @@ class GitHubService:
     """Service for handling GitHub repository operations."""
     
     def __init__(self):
-        """Initialize the GitHub service."""
+        """Initialize the GitHub service with a GitHubHandler instance."""
         self.github_handler = GitHubHandler()
     
     def validate_github_url(self, url: str) -> Tuple[str, str]:
@@ -32,13 +35,13 @@ class GitHubService:
         Validate and parse a GitHub repository URL.
         
         Args:
-            url: The repository URL to validate
+            url (str): The repository URL to validate.
             
         Returns:
-            Tuple[str, str]: Repository owner and name
+            Tuple[str, str]: A tuple containing the repository owner and name.
             
         Raises:
-            InvalidRepositoryError: If the URL is invalid
+            InvalidRepositoryError: If the URL is invalid or not a GitHub URL.
         """
         try:
             # Clean up the URL
@@ -94,15 +97,15 @@ class GitHubService:
         Process a GitHub repository by cloning it and concatenating its files.
         
         Args:
-            repo_url: The repository URL to process
-            file_pattern: Optional pattern for filtering files
-            github_token: Optional GitHub token for private repositories
+            repo_url (str): The repository URL to process.
+            file_pattern (Optional[str]): Optional pattern for filtering files.
+            github_token (Optional[str]): Optional GitHub token for private repositories.
             
         Returns:
-            Dict[str, Any]: Processing results including statistics
+            Dict[str, Any]: A dictionary containing processing results and statistics.
             
         Raises:
-            Various exceptions from github_handler and concatenator
+            Various exceptions from github_handler and concatenator.
         """
         try:
             # Validate repository URL first
@@ -150,6 +153,6 @@ class GitHubService:
             raise Exception(f"Failed to process repository: {str(e)}")
     
     def __del__(self):
-        """Cleanup when the service is destroyed."""
+        """Cleanup resources when the service is destroyed."""
         if hasattr(self, 'github_handler'):
             self.github_handler.cleanup() 

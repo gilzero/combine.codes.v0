@@ -1,6 +1,9 @@
 """
-GitHub repository handler for the File Concatenator application.
-This module provides functionality to clone GitHub repositories and manage temporary directories.
+@fileoverview
+This module provides the GitHubHandler class, which handles operations related to
+cloning GitHub repositories and managing temporary directories with caching. It
+includes methods for validating GitHub URLs, checking repository accessibility,
+and cloning repositories with cache support.
 """
 
 import git
@@ -32,7 +35,8 @@ from app.models.schemas import (
     FileSystemError,
     CacheError
 )
-from app.config.ignore_patterns import get_system_ignores
+from app.config.pattern_manager import get_system_ignores
+from app.config.pattern_manager import PatternManager
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +44,14 @@ class GitHubHandler:
     """Handles GitHub repository operations including cloning and temporary directories with caching."""
     
     def __init__(self, cache_dir: Optional[str] = None, github_token: Optional[str] = None, cache_ttl: int = 3600):
+        """
+        Initialize the GitHubHandler with optional caching and authentication settings.
+        
+        Args:
+            cache_dir (Optional[str]): Directory for caching cloned repositories.
+            github_token (Optional[str]): GitHub token for accessing private repositories.
+            cache_ttl (int): Time-to-live for cache in seconds.
+        """
         self.config = GitHubConfig(
             cache_dir=cache_dir,
             github_token=github_token,
@@ -66,16 +78,16 @@ class GitHubHandler:
 
     def validate_github_url(self, url: str) -> GitHubRepoInfo:
         """
-        Validate and parse GitHub repository URL.
+        Validate and parse a GitHub repository URL.
         
         Args:
-            url: The repository URL to validate
+            url (str): The repository URL to validate.
             
         Returns:
-            GitHubRepoInfo: Repository information
+            GitHubRepoInfo: Parsed repository information.
             
         Raises:
-            InvalidRepositoryError: If the URL is not a valid GitHub repository URL
+            InvalidRepositoryError: If the URL is not a valid GitHub repository URL.
         """
         try:
             # Clean up the URL first
@@ -214,11 +226,10 @@ class GitHubHandler:
                             with open(gitignore_path, "r") as f:
                                 repo_ignores = [line.strip() for line in f if line.strip() and not line.startswith('#')]
                         
-                        # Get combined ignore patterns
-                        from app.config.ignore_patterns import combine_ignore_patterns
-                        all_ignores = combine_ignore_patterns(repo_ignores)
+                        # Use PatternManager for combined ignore patterns
+                        pattern_manager = PatternManager(repo_ignores=repo_ignores)
                         logger.info("Using combined ignore patterns:")
-                        for pattern in all_ignores:
+                        for pattern in pattern_manager.all_ignores:
                             logger.info(f"- {pattern}")
 
                         # Calculate actual file information
@@ -236,8 +247,7 @@ class GitHubHandler:
                         for root, _, files in os.walk(target_dir):
                             # Skip ignored directories
                             rel_root = str(Path(root).relative_to(temp_dir))
-                            if any(PathSpec.from_lines(GitWildMatchPattern, [pattern]).match_file(rel_root) 
-                                  for pattern in all_ignores):
+                            if pattern_manager.should_ignore(rel_root):
                                 continue
                             
                             for file in files:
@@ -245,8 +255,7 @@ class GitHubHandler:
                                 rel_path = str(file_path.relative_to(temp_dir))
                                 
                                 # Skip ignored files
-                                if any(PathSpec.from_lines(GitWildMatchPattern, [pattern]).match_file(rel_path) 
-                                      for pattern in all_ignores):
+                                if pattern_manager.should_ignore(rel_path):
                                     continue
                                 
                                 try:
