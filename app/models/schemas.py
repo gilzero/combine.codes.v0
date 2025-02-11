@@ -121,173 +121,6 @@ class ConcatenationStats(BaseModel):
     dir_stats: DirectoryStats = DirectoryStats()
     filter_stats: FilterStats = FilterStats()
 
-# Base exception class for application
-class FileConcatenatorError(Exception):
-    """Base exception class for all application errors."""
-    def __init__(self, message: str, status_code: int = 500, details: Optional[Dict[str, Any]] = None):
-        self.message = message
-        self.status_code = status_code
-        self.details = details or {}
-        super().__init__(self.message)
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert error to a dictionary format suitable for API responses."""
-        return {
-            "status": "error",
-            "message": self.message,
-            "error_type": self.__class__.__name__,
-            "status_code": self.status_code,
-            "details": self.details
-        }
-
-class FileConcatenationError(FileConcatenatorError):
-    """Exception raised for errors during file concatenation."""
-    def __init__(self, message: str, status_code: int = 400, details: Optional[Dict[str, Any]] = None):
-        super().__init__(message, status_code, details)
-
-class GitHubError(FileConcatenatorError):
-    """Exception raised for GitHub-related errors."""
-    def __init__(self, message: str, status_code: int = 400, details: Optional[Dict[str, Any]] = None):
-        super().__init__(message, status_code, details)
-
-class RepositoryNotFoundError(GitHubError):
-    """Exception raised when a repository is not found."""
-    def __init__(self, repo_url: str, branch: Optional[str] = None):
-        details = {"repository_url": repo_url}
-        if branch:
-            details["branch"] = branch
-            message = f"Repository or branch not found: {repo_url} (branch: {branch})"
-        else:
-            message = f"Repository not found: {repo_url}"
-        super().__init__(message, status_code=404, details=details)
-
-class InvalidRepositoryError(GitHubError):
-    """Exception raised when a repository URL is invalid."""
-    def __init__(self, repo_url: str, reason: str, suggestion: Optional[str] = None):
-        details = {
-            "repository_url": repo_url,
-            "reason": reason
-        }
-        if suggestion:
-            details["suggestion"] = suggestion
-        super().__init__(
-            f"Invalid repository URL '{repo_url}': {reason}",
-            status_code=400,
-            details=details
-        )
-
-class SubdirectoryError(GitHubError):
-    """Exception raised when there are issues with the specified subdirectory."""
-    def __init__(self, subdir: str, repo_url: str, reason: str):
-        details = {
-            "repository_url": repo_url,
-            "subdirectory": subdir,
-            "reason": reason
-        }
-        super().__init__(
-            f"Error accessing subdirectory '{subdir}': {reason}",
-            status_code=404,
-            details=details
-        )
-
-class AuthenticationError(GitHubError):
-    """Exception raised for GitHub authentication errors."""
-    def __init__(self, message: str = "GitHub authentication failed", requires_token: bool = True):
-        details = {
-            "requires_token": requires_token,
-            "help": "Please provide a valid GitHub token for private repositories"
-        }
-        super().__init__(message, status_code=401, details=details)
-
-class RateLimitError(GitHubError):
-    """Exception raised when GitHub API rate limit is exceeded."""
-    def __init__(self, reset_time: Optional[datetime] = None):
-        details = {
-            "help": "Consider using a GitHub token to increase rate limits"
-        }
-        if reset_time:
-            details["rate_limit_reset"] = reset_time.isoformat()
-        super().__init__(
-            "GitHub API rate limit exceeded. Please try again later or use a token.",
-            status_code=429,
-            details=details
-        )
-
-class FileSystemError(FileConcatenatorError):
-    """Exception raised for filesystem-related errors."""
-    def __init__(self, message: str, path: Optional[str] = None, suggestion: Optional[str] = None):
-        details = {}
-        if path:
-            details["path"] = path
-        if suggestion:
-            details["suggestion"] = suggestion
-        super().__init__(
-            f"Filesystem error: {message}",
-            status_code=500,
-            details=details
-        )
-
-class CacheError(FileConcatenatorError):
-    """Exception raised for cache-related errors."""
-    def __init__(self, message: str, cache_path: Optional[str] = None, can_retry: bool = True):
-        details = {
-            "can_retry": can_retry
-        }
-        if cache_path:
-            details["cache_path"] = cache_path
-        super().__init__(
-            f"Cache error: {message}",
-            status_code=500,
-            details=details
-        )
-
-class ValidationError(FileConcatenatorError):
-    """Exception raised for input validation errors."""
-    def __init__(self, message: str, field: Optional[str] = None, suggestion: Optional[str] = None):
-        details = {}
-        if field:
-            details["field"] = field
-        if suggestion:
-            details["suggestion"] = suggestion
-        super().__init__(
-            f"Validation error: {message}",
-            status_code=400,
-            details=details
-        )
-
-class RepositoryPreCheckRequest(BaseModel):
-    """Request model for repository pre-check."""
-    repo_url: HttpUrl
-    github_token: Optional[str] = None
-    base_url: HttpUrl  # URL of the application for Stripe success/cancel redirects
-
-class RepositoryPreCheckResponse(BaseModel):
-    """Response model for repository pre-check."""
-    repo_name: str
-    owner: str
-    estimated_file_count: int
-    repository_size_kb: float
-    price_usd: float = 0.50
-    checkout_session_id: str
-    status: str = "ready"
-    message: Optional[str] = None
-
-class PaymentVerificationRequest(BaseModel):
-    """Request model for payment verification."""
-    checkout_session_id: str
-
-class PaymentStatus(str, Enum):
-    """Payment status enumeration."""
-    PENDING = "pending"
-    COMPLETED = "completed"
-    FAILED = "failed"
-
-class PaymentVerificationResponse(BaseModel):
-    """Response model for payment verification."""
-    status: PaymentStatus
-    message: str
-    can_proceed: bool = False
-
 class GitHubConfig(BaseModel):
     """Configuration model for GitHub handler."""
     cache_dir: Optional[str] = None
@@ -314,8 +147,6 @@ class GitHubRepoInfo(BaseModel):
     subdir: Optional[str] = None
     base_url: str
     clone_url: str
-    size: Optional[int] = 0
-    estimated_file_count: Optional[int] = 0
     
     class Config:
         """Pydantic model configuration."""
@@ -348,4 +179,117 @@ class CloneResult(BaseModel):
         """Pydantic model configuration."""
         json_encoders = {
             pathlib.Path: str
-        } 
+        }
+
+# Base exception class for application
+class FileConcatenatorError(Exception):
+    """Base exception class for all application errors."""
+    def __init__(self, message: str, status_code: int = 500, details: Optional[Dict[str, Any]] = None):
+        self.message = message
+        self.status_code = status_code
+        self.details = details or {}
+        super().__init__(self.message)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert error to a dictionary format suitable for API responses."""
+        return {
+            "status": "error",
+            "message": self.message,
+            "error_type": self.__class__.__name__,
+            "status_code": self.status_code,
+            "details": self.details
+        }
+
+class GitHubError(FileConcatenatorError):
+    """Exception raised for GitHub-related errors."""
+    def __init__(self, message: str, status_code: int = 400, details: Optional[Dict[str, Any]] = None):
+        super().__init__(message, status_code, details)
+
+class RepositoryNotFoundError(GitHubError):
+    """Exception raised when a repository is not found."""
+    def __init__(self, repo_url: str):
+        details = {"repository_url": repo_url}
+        message = f"Repository not found: {repo_url}"
+        super().__init__(message, status_code=404, details=details)
+
+class InvalidRepositoryError(GitHubError):
+    """Exception raised when a repository URL is invalid."""
+    def __init__(self, repo_url: str, reason: str, suggestion: Optional[str] = None):
+        details = {
+            "repository_url": repo_url,
+            "reason": reason
+        }
+        if suggestion:
+            details["suggestion"] = suggestion
+        super().__init__(
+            f"Invalid repository URL '{repo_url}': {reason}",
+            status_code=400,
+            details=details
+        )
+
+class AuthenticationError(GitHubError):
+    """Exception raised for GitHub authentication errors."""
+    def __init__(self, message: str = "GitHub authentication failed"):
+        details = {
+            "help": "Please provide a valid GitHub token for private repositories"
+        }
+        super().__init__(message, status_code=401, details=details)
+
+class FileSystemError(FileConcatenatorError):
+    """Exception raised for filesystem-related errors."""
+    def __init__(self, message: str, path: Optional[str] = None, suggestion: Optional[str] = None):
+        details = {}
+        if path:
+            details["path"] = path
+        if suggestion:
+            details["suggestion"] = suggestion
+        super().__init__(
+            f"Filesystem error: {message}",
+            status_code=500,
+            details=details
+        )
+
+class CacheError(FileConcatenatorError):
+    """Exception raised for cache-related errors."""
+    def __init__(self, message: str, cache_path: Optional[str] = None, can_retry: bool = True):
+        details = {
+            "can_retry": can_retry
+        }
+        if cache_path:
+            details["cache_path"] = cache_path
+        super().__init__(
+            f"Cache error: {message}",
+            status_code=500,
+            details=details
+        )
+
+class RepositoryPreCheckRequest(BaseModel):
+    """Request model for repository pre-check."""
+    repo_url: HttpUrl
+    github_token: Optional[str] = None
+    base_url: HttpUrl  # URL of the application for Stripe success/cancel redirects
+
+class RepositoryPreCheckResponse(BaseModel):
+    """Response model for repository pre-check."""
+    repo_name: str
+    owner: str
+    price_usd: float = 0.50
+    checkout_session_id: str
+    status: str = "ready"
+    message: Optional[str] = None
+
+class PaymentVerificationRequest(BaseModel):
+    """Request model for payment verification."""
+    checkout_session_id: str
+
+class PaymentStatus(str, Enum):
+    """Payment status enumeration."""
+    PENDING = "pending"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+class PaymentVerificationResponse(BaseModel):
+    """Response model for payment verification."""
+    status: PaymentStatus
+    message: str
+    can_proceed: bool = False 

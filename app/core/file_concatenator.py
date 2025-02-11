@@ -1,3 +1,6 @@
+"""
+File concatenation module for the File Concatenator application.
+"""
 import pathlib
 from pathspec import PathSpec
 from pathspec.patterns import GitWildMatchPattern
@@ -11,19 +14,19 @@ import re
 
 from app.models.schemas import (
     ConcatenationStats,
-    FileConcatenationError,
+    FileConcatenatorError,
     TreeNode
 )
 
 logger = logging.getLogger(__name__)
 
 class FileConcatenator:
-    def __init__(self, base_dir: str = ".", additional_ignores: List[str] = None):
+    def __init__(self, repo_path: pathlib.Path, additional_ignores: List[str] = None):
         try:
-            logger.info(f"Initializing concatenator for directory: {base_dir}")
-            self.base_dir = pathlib.Path(base_dir).resolve()
+            logger.info(f"Initializing concatenator for repository: {repo_path}")
+            self.base_dir = pathlib.Path(repo_path).resolve()
             if not self.base_dir.exists():
-                raise FileConcatenationError(f"Directory does not exist: {base_dir}")
+                raise FileConcatenatorError(f"Directory does not exist: {repo_path}")
             
             self.additional_ignores = additional_ignores or []
             logger.info(f"Additional ignore patterns: {self.additional_ignores}")
@@ -37,13 +40,66 @@ class FileConcatenator:
             self.gitignore_spec = PathSpec.from_lines(GitWildMatchPattern, all_patterns)
             
             # Create output directory if it doesn't exist
-            self.output_dir = pathlib.Path(__file__).parent.parent.parent / "output"
+            self.output_dir = pathlib.Path("output")
             self.output_dir.mkdir(exist_ok=True)
             logger.info(f"Output directory ready at: {self.output_dir}")
             
         except Exception as e:
             logger.error(f"Initialization failed: {str(e)}")
-            raise FileConcatenationError(f"Initialization error: {str(e)}")
+            raise FileConcatenatorError(f"Initialization error: {str(e)}")
+
+    def concatenate(self) -> str:
+        """
+        Concatenate all files in the repository.
+        Returns the path to the concatenated file.
+        """
+        try:
+            repo_name = self._get_repo_name()
+            output_filename = self._generate_unique_filename(repo_name)
+            output_file = self.output_dir / output_filename
+            
+            # Get all files to process
+            files = self._walk_directory()
+            self.stats.file_stats.total_files = len(files)
+            
+            # Build directory tree
+            self.stats.dir_stats.tree = self._build_directory_tree()
+            
+            # Process each file
+            with open(output_file, 'w', encoding='utf-8') as outfile:
+                # Write header
+                outfile.write(f"Repository: {self.base_dir}\n")
+                outfile.write("=" * (len(str(self.base_dir)) + 12) + "\n\n")
+                
+                # Process each file
+                for file_path in files:
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as infile:
+                            content = infile.read()
+                            
+                            # Write file header
+                            rel_path = file_path.relative_to(self.base_dir)
+                            outfile.write(f"\nFile: {rel_path}\n")
+                            outfile.write("-" * (len(str(rel_path)) + 6) + "\n\n")
+                            outfile.write(content)
+                            outfile.write("\n")
+                            
+                            # Update statistics
+                            self._update_file_stats(file_path, content)
+                            self.stats.file_stats.processed_files += 1
+                            
+                    except UnicodeDecodeError:
+                        logger.warning(f"Skipping binary file: {file_path}")
+                        self.stats.file_stats.skipped_files += 1
+                    except Exception as e:
+                        logger.error(f"Error processing file {file_path}: {e}")
+                        self.stats.file_stats.skipped_files += 1
+            
+            return output_filename
+            
+        except Exception as e:
+            logger.error(f"Concatenation failed: {str(e)}")
+            raise FileConcatenatorError(f"Concatenation error: {str(e)}")
 
     def _load_gitignore(self) -> List[str]:
         """Load .gitignore patterns if the file exists."""
@@ -229,107 +285,30 @@ class FileConcatenator:
         clean_name = re.sub(r'[^\w\-]', '_', repo_name)
         return f"output_{clean_name}_{timestamp}_pid{pid}_{unique_id}.txt"
 
-    async def concatenate_files(self) -> str:
-        """Concatenate all files in the directory respecting .gitignore rules."""
-        try:
-            repo_name = self._get_repo_name()
-            output_filename = self._generate_unique_filename(repo_name)
-            output_file = self.output_dir / output_filename
-            
-            files = self._walk_directory()
-            self.stats.file_stats.total_files = len(files)
-            
-            # Build directory tree starting from the current base_dir
-            self.stats.dir_stats.tree = self._build_directory_tree()
-            
-            async with aiofiles.open(output_file, 'w', encoding='utf-8') as outfile:
-                # Write directory information
-                await outfile.write(f"Directory: {self.base_dir}\n")
-                await outfile.write("=" * (len(str(self.base_dir)) + 11) + "\n\n")
-                
-                # Write directory tree visualization
-                await outfile.write("Directory Structure:\n")
-                await outfile.write("===================\n\n")
-                await self._write_tree_visualization(outfile, self.stats.dir_stats.tree)
-                await outfile.write("\n\nFile Contents:\n")
-                await outfile.write("=============\n\n")
-                
-                for file_path in files:
-                    try:
-                        if self._is_ignored(file_path):
-                            self.stats.file_stats.skipped_files += 1
-                            continue
-                        
-                        logger.info(f"Processing file: {file_path}")
-                        async with aiofiles.open(file_path, 'r', encoding='utf-8') as infile:
-                            content = await infile.read()
-                            
-                            # Write file header with relative path from base_dir
-                            await outfile.write(f"\n{'='*80}\n")
-                            await outfile.write(f"File: {file_path.relative_to(self.base_dir)}\n")
-                            await outfile.write(f"{'='*80}\n\n")
-                            
-                            # Write file content
-                            await outfile.write(content)
-                            await outfile.write("\n")
-                            
-                            self._update_file_stats(file_path, content)
-                            self.stats.file_stats.processed_files += 1
-                            
-                    except Exception as e:
-                        logger.error(f"Error processing file {file_path}: {e}")
-                        continue
-            
-            logger.info(f"Concatenation complete. Output saved to: {output_file}")
-            return str(output_file)
-            
-        except Exception as e:
-            logger.error(f"Concatenation failed: {e}")
-            raise FileConcatenationError(f"Concatenation error: {str(e)}")
-
-    async def _write_tree_visualization(self, outfile, node: TreeNode, prefix: str = "", is_last: bool = True):
-        """Write ASCII tree visualization to the output file."""
-        if not node:
-            return
-
-        # Calculate the current line prefix
-        current_prefix = prefix + ("└── " if is_last else "├── ")
-        next_prefix = prefix + ("    " if is_last else "│   ")
-
-        # Add size information for files
-        size_info = ""
-        if node.type == 'file' and node.metadata.get('size') is not None:
-            size = node.metadata['size']
-            if size < 1024:
-                size_info = f" ({size} B)"
-            elif size < 1024 * 1024:
-                size_info = f" ({size/1024:.1f} KB)"
-            else:
-                size_info = f" ({size/(1024*1024):.1f} MB)"
-
-        # Write the current node
-        await outfile.write(f"{current_prefix}{node.name}{size_info}\n")
-
-        # Process children
-        if node.children:
-            for i, child in enumerate(node.children):
-                is_last_child = i == len(node.children) - 1
-                await self._write_tree_visualization(outfile, child, next_prefix, is_last_child)
-
     def _walk_directory(self) -> List[pathlib.Path]:
-        """Walk through directory and collect all files."""
+        """Walk the directory and return a list of files to process."""
         files = []
         try:
-            # Only walk through the specified base directory
-            for current_path in self.base_dir.rglob("*"):
-                if current_path.is_file():
-                    files.append(current_path)
-                elif current_path.is_dir():
-                    # Count files in this directory for stats
-                    dir_files = list(current_path.glob("*"))
-                    self._update_dir_stats(current_path, len([f for f in dir_files if f.is_file()]))
+            for root, dirs, filenames in os.walk(self.base_dir):
+                root_path = pathlib.Path(root)
+                
+                # Update directory stats
+                self._update_dir_stats(root_path, len(filenames))
+                
+                # Filter out ignored directories
+                dirs[:] = [d for d in dirs if not self._is_ignored(root_path / d)]
+                
+                # Add non-ignored files
+                for filename in filenames:
+                    file_path = root_path / filename
+                    if not self._is_ignored(file_path):
+                        files.append(file_path)
             
             return sorted(files)
         except Exception as e:
             logger.error(f"Error walking directory: {e}")
-            return [] 
+            raise FileConcatenatorError(f"Error accessing directory: {str(e)}")
+
+    def get_statistics(self) -> dict:
+        """Get the concatenation statistics."""
+        return self.stats.dict() 
