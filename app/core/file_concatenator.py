@@ -65,8 +65,8 @@ class FileConcatenator:
             self.output_dir.mkdir(exist_ok=True)
             logger.info(f"Output directory ready at: {self.output_dir}")
             
-        except Exception as e:
-            logger.error(f"Initialization failed: {str(e)}")
+        except OSError as e:
+            logger.error(f"Directory creation failed: {str(e)}")
             raise FileConcatenatorError(f"Initialization error: {str(e)}")
 
     def _normalize_patterns(self, patterns: List[str]) -> List[str]:
@@ -316,4 +316,4 @@ class FileConcatenator:
 
     def get_statistics(self) -> dict:
         """Get the concatenation statistics."""
-        return self.stats.dict() 
+        return self.stats.model_dump() 

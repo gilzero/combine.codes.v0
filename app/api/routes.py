@@ -112,8 +112,8 @@ async def pre_check_repository(request: RepositoryPreCheckRequest) -> Repository
     except (GitHubError, stripe.error.StripeError) as e:
         logger.error(f"Pre-check failed: {str(e)}")
         if isinstance(e, GitHubError):
-            raise HTTPException(status_code=e.status_code, detail=e.to_dict())
-        raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=e.status_code, detail={"message": e.to_dict(), "error_code": "GITHUB_ERROR"})
+        raise HTTPException(status_code=400, detail={"message": str(e), "error_code": "STRIPE_ERROR"})
 
 @router.get("/success")
 async def payment_success(request: Request, session_id: str):

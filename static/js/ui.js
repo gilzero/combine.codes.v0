@@ -18,47 +18,39 @@ export function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast animate__animated animate__fadeInRight ${type}`;
     toast.innerHTML = `
-        <div class="toast-header">
-            <i class="bi bi-${type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>
-            <strong class="me-auto">Notification</strong>
-            <button type="button" class="btn-close" onclick="this.parentElement.parentElement.remove()"></button>
-        </div>
         <div class="toast-body">
             ${message}
         </div>
     `;
     document.body.appendChild(toast);
-    
     setTimeout(() => {
-        toast.classList.remove('animate__fadeInRight');
         toast.classList.add('animate__fadeOutRight');
-        setTimeout(() => toast.remove(), 1000);
+        toast.addEventListener('animationend', () => toast.remove());
     }, 3000);
 }
 
-export function showError(error) {
+export function showError(error, fieldId = null) {
+    if (fieldId) {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            const errorElement = document.createElement('div');
+            errorElement.className = 'error-message';
+            errorElement.textContent = error.message || 'An unexpected error occurred';
+            field.parentElement.appendChild(errorElement);
+            return;
+        }
+    }
+    // Fallback to general error area
     const errorArea = document.getElementById('error-area');
     if (!errorArea) {
         console.error('Error area not found');
         return;
     }
-
-    let message, suggestion, action;
-
-    if (error instanceof AppError) {
-        ({ message, suggestion, action } = getErrorDetails(error));
-    } else {
-        message = error.message || 'An unexpected error occurred';
-        suggestion = 'Please try again or contact support if the problem persists';
-    }
-
+    let message = error.message || 'An unexpected error occurred';
     errorArea.innerHTML = `
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
             <strong>${message}</strong>
-            ${suggestion ? `<br><small class="text-muted">${suggestion}</small>` : ''}
-            ${action ? `<br><div class="mt-2">${action}</div>` : ''}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     `;
 }

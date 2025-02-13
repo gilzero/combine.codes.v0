@@ -19,6 +19,7 @@ import { showError, updateProgress, updateRepositoryDetails } from './ui.js';
 import { preCheckRepository } from './api.js';
 import { handlePayment, setActiveCheckoutSession } from './payment.js';
 import { ErrorTypes, AppError } from './utils.js';
+// import DOMPurify from 'dompurify';
 
 // Form handling
 export async function handleRepositorySubmit(event) {
@@ -95,9 +96,10 @@ export async function handleRepositorySubmit(event) {
 
 export function validateInput(event) {
     const input = event.target;
+    const sanitizedValue = DOMPurify.sanitize(input.value);
     const repoUrlPattern = /^https:\/\/github\.com\/[\w-]+\/[\w-]+$/;
     
-    if (!repoUrlPattern.test(input.value)) {
+    if (!repoUrlPattern.test(sanitizedValue)) {
         input.setCustomValidity('Please enter a valid GitHub repository URL');
     } else {
         input.setCustomValidity('');

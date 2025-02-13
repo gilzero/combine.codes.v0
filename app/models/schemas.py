@@ -61,9 +61,9 @@ class FileStats(BaseModel):
             return 0.0
         return round(self.total_lines / self.processed_files, 2)
 
-    def dict(self, *args, **kwargs):
-        """Custom dict method to include computed properties."""
-        d = super().dict(*args, **kwargs)
+    def model_dump(self, *args, **kwargs):
+        """Custom model_dump method to include computed properties."""
+        d = super().model_dump(*args, **kwargs)
         d['avg_lines_per_file'] = self.avg_lines_per_file
         # Include file_types under both names for compatibility
         d['by_type'] = self.file_types
@@ -110,9 +110,9 @@ class FilterStats(BaseModel):
             )[:5]  # Return top 5 most effective patterns
         ]
 
-    def dict(self, *args, **kwargs):
-        """Custom dict method to include computed properties."""
-        d = super().dict(*args, **kwargs)
+    def model_dump(self, *args, **kwargs):
+        """Custom model_dump method to include computed properties."""
+        d = super().model_dump(*args, **kwargs)
         d['most_effective_patterns'] = self.most_effective_patterns
         return d
 
