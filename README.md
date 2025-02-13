@@ -1,4 +1,4 @@
-# File Concatenator Service v5
+# File Concatenator Service v1 (combinecodesv1) Alpha
 
 A web service that allows users to concatenate and analyze files from GitHub repositories.
 
@@ -18,8 +18,8 @@ A web service that allows users to concatenate and analyze files from GitHub rep
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/file-concatenator.git
-cd file-concatenator
+git clone https://github.com/gilzero/combinecodesv1
+cd combinecodesv1
 ```
 
 2. Create and activate a virtual environment:
@@ -126,3 +126,16 @@ The service includes comprehensive error handling for:
 ## License
 
 MIT License - See LICENSE file for details
+
+## Author
+gilzero / Weiming Chen
+https://weiming.ai
+
+## Known Issues
+- not stats info are passed to the front end
+- compute stats is across files, should be centralized
+
+## Future Improvements
+- feed to LLM
+
+
