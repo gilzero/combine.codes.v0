@@ -1,4 +1,4 @@
-# File Concatenator Service v1 (combinecodesv1) Alpha
+# Combine Codes Service v1 (combinecodesv1) Alpha
 
 A web service that allows users to concatenate and analyze files from GitHub repositories.
 
@@ -24,7 +24,8 @@ cd combinecodesv1
 
 2. Create and activate a virtual environment:
 ```bash
-python -m venv venv
+(use python 3.11 : python3.11 -m venv venv)
+python -m venv venv 
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
@@ -41,10 +42,15 @@ GITHUB_TOKEN=your_github_token  # Optional, for private repos
 # Stripe Configuration
 STRIPE_SECRET_KEY=your_stripe_secret_key
 STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+STRIPE_PAYMENT_METHOD_CONFIG=
 
 # Cache Configuration (optional)
 CACHE_DIR=path/to/cache
 CACHE_TTL_HOURS=1
+
+# App Configuration
+DEBUG=True
+ENVIRONMENT=development 
 ```
 
 5. Run the application:
@@ -132,10 +138,17 @@ gilzero / Weiming Chen
 https://weiming.ai
 
 ## Known Issues
-- not stats info are passed to the front end
+- not all stats info are passed to the front end
 - compute stats is across files, should be centralized
+- UI
 
 ## Future Improvements
 - feed to LLM
+- refactor
 
+## Checkpoints
+- 2025-02-13: Alpha release
+
+## Deployment
+https://combine.codes
 
