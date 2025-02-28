@@ -1,0 +1,10 @@
+body {
+    transition: background-color 0.3s ease;
+}
+
+/* Accessibility improvements */
+.btn:focus-visible,
+.form-control:focus-visible {
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+    outline: none;
+} 

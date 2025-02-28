@@ -1,0 +1,74 @@
+/* Export buttons */
+.export-buttons {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    z-index: 1000;
+}
+
+.export-button {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.export-button:hover {
+    transform: scale(1.1);
+}
+
+.export-tooltip {
+    position: absolute;
+    right: 100%;
+    margin-right: 0.5rem;
+    background: var(--bs-dark);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.export-button:hover .export-tooltip {
+    opacity: 1;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 1rem;
+    }
+
+    .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    .toast {
+        width: 90%;
+        right: 5%;
+    }
+
+    .export-buttons {
+        bottom: 1rem;
+        right: 1rem;
+    }
+
+    .export-button {
+        width: 40px;
+        height: 40px;
+    }
+} 
