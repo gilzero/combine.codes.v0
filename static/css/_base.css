@@ -1,5 +1,18 @@
 body {
     transition: background-color 0.3s ease;
+    background-color: var(--bs-body-bg);
+    background-image: var(--pattern-diagonal);
+    background-size: 20px 20px;
+    background-attachment: fixed;
+}
+
+/* Dark mode adjustments for patterns */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-image: var(--pattern-diagonal);
+        background-size: 20px 20px;
+        opacity: 0.95;
+    }
 }
 
 /* Accessibility improvements */

@@ -1,2 +1,33 @@
 /* This file is for utility classes and helpers */
-/* Currently no specific utility classes in the original CSS */ 
+/* Currently no specific utility classes in the original CSS */
+
+/* Background pattern utilities */
+.bg-pattern-dots {
+    background-image: var(--pattern-dots);
+    background-size: 15px 15px;
+    position: relative;
+}
+
+.bg-pattern-grid {
+    background-image: var(--pattern-grid);
+    background-size: 20px 20px;
+    position: relative;
+}
+
+.bg-pattern-diagonal {
+    background-image: var(--pattern-diagonal);
+    background-size: 20px 20px;
+    position: relative;
+}
+
+.bg-pattern-noise {
+    background-image: var(--pattern-noise);
+    background-size: 200px 200px;
+    position: relative;
+}
+
+/* Pattern opacity utilities */
+.pattern-opacity-5 { opacity: 0.05; }
+.pattern-opacity-10 { opacity: 0.1; }
+.pattern-opacity-15 { opacity: 0.15; }
+.pattern-opacity-20 { opacity: 0.2; } 
