@@ -11,17 +11,32 @@
 
 {% block content %}
 <div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-7 text-center mb-5">
+        <h1 class="display-5 fw-bold mb-3">Combine & Analyze Code</h1>
+        <p class="lead mb-4">Process GitHub repositories to combine and analyze multiple files with comprehensive statistics.</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
     <div class="col-12 col-lg-10 col-xl-8">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h1 class="h5 card-title mb-4">GitHub Repository</h1>
+        <div class="card shadow-sm mb-5">
+            <div class="card-body p-lg-5">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="feature-icon bg-primary bg-gradient rounded-circle p-3 me-3">
+                        <i class="bi bi-github text-white fs-4"></i>
+                    </div>
+                    <h2 class="h4 card-title mb-0">GitHub Repository</h2>
+                </div>
                 
                 <form id="repository-form">
                     <div class="mb-4">
                         <label for="repo-url" class="form-label">Repository URL</label>
                         <div class="input-group">
+                            <span class="input-group-text bg-light">
+                                <i class="bi bi-link-45deg"></i>
+                            </span>
                             <input type="url" 
-                                   class="form-control" 
+                                   class="form-control form-control-lg" 
                                    id="repo-url" 
                                    name="repo-url" 
                                    placeholder="https://github.com/username/repository"
@@ -30,10 +45,10 @@
                                     class="btn btn-primary"
                                     aria-label="Process files in selected directory">
                                 <i class="bi bi-play-fill" aria-hidden="true"></i>
-                                <span>Process Repository</span>
+                                <span>Process</span>
                             </button>
                         </div>
-                        <div class="form-text d-flex justify-content-between align-items-center">
+                        <div class="form-text d-flex justify-content-between align-items-center mt-2">
                             <span>Enter the HTTPS URL of the GitHub repository</span>
                             <button type="button" 
                                     class="btn btn-sm btn-outline-secondary" 
@@ -45,24 +60,71 @@
 
                     <div class="mb-4">
                         <label for="github-token" class="form-label">GitHub Token (Optional)</label>
-                        <input type="password" 
-                               class="form-control" 
-                               id="github-token" 
-                               name="github-token" 
-                               placeholder="For private repositories">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">
+                                <i class="bi bi-key"></i>
+                            </span>
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="github-token" 
+                                   name="github-token" 
+                                   placeholder="For private repositories">
+                        </div>
                         <div class="form-text">Required only for private repositories</div>
                     </div>
 
                     <div id="confirmation-area" class="mt-4"></div>
                     
-                    <div id="progress-bar-container" style="width: 100%; background-color: #f3f3f3; display: none;">
-                        <div id="progress-bar" style="width: 0%; height: 20px; background-color: #4caf50;"></div>
+                    <div id="progress-container" class="mt-4" style="display: none;">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="progress-label">Processing repository...</span>
+                            <span class="progress-percentage">0%</span>
+                        </div>
+                        <div class="progress">
+                            <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
                     </div>
                     
                     <div id="result-area" class="mt-4"></div>
                     
                     <div id="error-area" class="mt-4"></div>
                 </form>
+            </div>
+        </div>
+        
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon bg-primary bg-gradient rounded-circle p-3 mx-auto mb-3">
+                            <i class="bi bi-code-square text-white fs-4"></i>
+                        </div>
+                        <h3 class="h5 card-title">Code Analysis</h3>
+                        <p class="card-text text-muted">Get detailed statistics about your codebase including language breakdown and complexity metrics.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon bg-primary bg-gradient rounded-circle p-3 mx-auto mb-3">
+                            <i class="bi bi-graph-up text-white fs-4"></i>
+                        </div>
+                        <h3 class="h5 card-title">Visual Reports</h3>
+                        <p class="card-text text-muted">Visualize your code statistics with beautiful charts and graphs for better insights.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon bg-primary bg-gradient rounded-circle p-3 mx-auto mb-3">
+                            <i class="bi bi-download text-white fs-4"></i>
+                        </div>
+                        <h3 class="h5 card-title">Export Options</h3>
+                        <p class="card-text text-muted">Export your analysis results in multiple formats including PDF and image for sharing.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -98,6 +160,29 @@
     document.addEventListener('DOMContentLoaded', () => {
         initializeTheme();
         initializeEventListeners();
+        
+        // Update progress bar
+        const updateProgress = (percent) => {
+            const progressBar = document.getElementById('progress-bar');
+            const progressPercentage = document.querySelector('.progress-percentage');
+            if (progressBar && progressPercentage) {
+                progressBar.style.width = `${percent}%`;
+                progressBar.setAttribute('aria-valuenow', percent);
+                progressPercentage.textContent = `${percent}%`;
+            }
+        };
+        
+        // Show progress container
+        const showProgress = () => {
+            const progressContainer = document.getElementById('progress-container');
+            if (progressContainer) {
+                progressContainer.style.display = 'block';
+            }
+        };
+        
+        // Make functions available globally
+        window.updateProgress = updateProgress;
+        window.showProgress = showProgress;
     });
 </script>
 {% endblock %}

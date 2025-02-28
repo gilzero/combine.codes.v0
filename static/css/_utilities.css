@@ -30,4 +30,82 @@
 .pattern-opacity-5 { opacity: 0.05; }
 .pattern-opacity-10 { opacity: 0.1; }
 .pattern-opacity-15 { opacity: 0.15; }
-.pattern-opacity-20 { opacity: 0.2; } 
+.pattern-opacity-20 { opacity: 0.2; }
+
+/* Utility classes for modern UI */
+
+/* Feature icons */
+.feature-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.feature-icon.bg-gradient {
+    background: var(--primary-gradient);
+}
+
+/* Text utilities */
+.text-primary-gradient {
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.text-accent-gradient {
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: var(--box-shadow-sm) !important;
+}
+
+.shadow-md {
+    box-shadow: var(--box-shadow-md) !important;
+}
+
+.shadow-lg {
+    box-shadow: var(--box-shadow-lg) !important;
+}
+
+/* Border radius utilities */
+.rounded-xl {
+    border-radius: var(--card-border-radius) !important;
+}
+
+.rounded-pill {
+    border-radius: 50rem !important;
+}
+
+/* Hover effects */
+.hover-lift {
+    transition: var(--transition-normal);
+}
+
+.hover-lift:hover {
+    transform: var(--hover-transform);
+    box-shadow: var(--box-shadow-md);
+}
+
+/* Social links */
+.social-links a {
+    font-size: 1.25rem;
+    color: var(--dark-color);
+    opacity: 0.7;
+    transition: var(--transition-fast);
+}
+
+.social-links a:hover {
+    opacity: 1;
+    color: var(--primary-color);
+} 

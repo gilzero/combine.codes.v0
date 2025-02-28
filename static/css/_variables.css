@@ -1,13 +1,55 @@
 :root {
-    --tree-hover-bg: rgba(13, 110, 253, 0.1);
-    --card-transition: all 0.3s ease;
-    --primary-gradient: linear-gradient(135deg, #0d6efd, #0a58ca);
-    --hover-transform: translateY(-2px);
+    /* Color palette */
+    --primary-color: #4361ee;
+    --primary-dark: #3a56d4;
+    --secondary-color: #7209b7;
+    --accent-color: #4cc9f0;
+    --success-color: #2ec4b6;
+    --warning-color: #ff9f1c;
+    --danger-color: #e63946;
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+    
+    /* UI Elements */
+    --card-border-radius: 16px;
+    --button-border-radius: 12px;
+    --input-border-radius: 10px;
+    --box-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --box-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+    --box-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+    
+    /* Transitions & Animations */
+    --transition-fast: all 0.2s ease;
+    --transition-normal: all 0.3s ease;
+    --transition-slow: all 0.5s ease;
+    --hover-transform: translateY(-3px);
+    
+    /* Gradients */
+    --primary-gradient: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    --accent-gradient: linear-gradient(135deg, var(--accent-color), var(--primary-color));
+    --success-gradient: linear-gradient(135deg, var(--success-color), #20a4a8);
     
     /* Background patterns */
-    --pattern-dots: radial-gradient(circle, #0d6efd 1px, transparent 1px);
-    --pattern-grid: linear-gradient(to right, rgba(13, 110, 253, 0.05) 1px, transparent 1px),
-                   linear-gradient(to bottom, rgba(13, 110, 253, 0.05) 1px, transparent 1px);
-    --pattern-diagonal: repeating-linear-gradient(45deg, rgba(13, 110, 253, 0.03) 0, rgba(13, 110, 253, 0.03) 1px, transparent 0, transparent 50%);
+    --tree-hover-bg: rgba(67, 97, 238, 0.1);
+    --pattern-dots: radial-gradient(circle, var(--primary-color) 1px, transparent 1px);
+    --pattern-grid: linear-gradient(to right, rgba(67, 97, 238, 0.05) 1px, transparent 1px),
+                   linear-gradient(to bottom, rgba(67, 97, 238, 0.05) 1px, transparent 1px);
+    --pattern-diagonal: repeating-linear-gradient(45deg, rgba(67, 97, 238, 0.03) 0, rgba(67, 97, 238, 0.03) 1px, transparent 0, transparent 50%);
     --pattern-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-xxl: 3rem;
+    
+    /* Typography */
+    --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    --font-family-mono: 'JetBrains Mono', 'SF Mono', 'Courier New', monospace;
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
 } 

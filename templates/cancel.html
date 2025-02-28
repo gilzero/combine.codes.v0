@@ -6,17 +6,33 @@
 <div class="row justify-content-center">
     <div class="col-12 col-lg-10 col-xl-8">
         <div class="card shadow-sm animate__animated animate__fadeIn">
-            <div class="card-body text-center">
+            <div class="card-body p-lg-5 text-center">
                 <div class="mb-4">
-                    <i class="bi bi-x-circle-fill text-warning" style="font-size: 4rem;"></i>
+                    <div class="feature-icon bg-warning bg-gradient rounded-circle p-3 mx-auto mb-3" style="width: 5rem; height: 5rem;">
+                        <i class="bi bi-x-lg text-white fs-1"></i>
+                    </div>
                 </div>
-                <h1 class="h3 mb-3">Payment Cancelled</h1>
-                <p class="text-muted mb-4">Your payment has been cancelled. No charges were made to your account.</p>
+                <h1 class="display-6 fw-bold mb-3">Payment Cancelled</h1>
+                <p class="lead text-muted mb-4">Your payment has been cancelled. No charges were made to your account.</p>
                 
-                <a href="/" class="btn btn-primary mt-3">
-                    <i class="bi bi-house-fill me-2"></i>
-                    Return to Home
-                </a>
+                <div class="alert alert-warning d-flex align-items-center rounded-xl mb-4" role="alert">
+                    <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+                    <div>
+                        You can try again whenever you're ready.
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                    <a href="/" class="btn btn-primary btn-lg px-4">
+                        <i class="bi bi-house-fill me-2"></i>
+                        Return to Home
+                    </a>
+                    
+                    <button onclick="window.history.back()" class="btn btn-outline-secondary btn-lg px-4">
+                        <i class="bi bi-arrow-left me-2"></i>
+                        Go Back
+                    </button>
+                </div>
             </div>
         </div>
     </div>
