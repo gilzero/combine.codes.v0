@@ -2,9 +2,9 @@
 @fileoverview
 app/core/file_concatenator.py
 This module provides the FileConcatenator class, which is responsible for
-concatenating files from a GitHub repository into a single output file.
+combining files from a GitHub repository into a single output file.
 It includes methods for walking directories, filtering files, and updating
-statistics related to the concatenation process.
+statistics related to the combining process.
 """
 import pathlib
 from pathspec import PathSpec
@@ -18,7 +18,7 @@ import os
 import re
 
 from app.models.schemas import (
-    ConcatenationStats,
+    CombiningStats,
     FileConcatenatorError,
     TreeNode
 )
@@ -58,7 +58,7 @@ class FileConcatenator:
                 self.pattern_manager.add_user_ignores(additional_ignores)
             
             # Initialize statistics
-            self.stats = ConcatenationStats()
+            self.stats = CombiningStats()
             
             # Create output directory if it doesn't exist
             self.output_dir = pathlib.Path("output")
@@ -83,10 +83,10 @@ class FileConcatenator:
 
     def concatenate(self) -> str:
         """
-        Concatenate all files in the repository.
+        Combine all files in the repository.
         
         Returns:
-            str: The path to the concatenated file.
+            str: The path to the combined file.
         """
         try:
             repo_name = self._get_repo_name()
@@ -133,8 +133,8 @@ class FileConcatenator:
             return output_filename
             
         except Exception as e:
-            logger.error(f"Concatenation failed: {str(e)}")
-            raise FileConcatenatorError(f"Concatenation error: {str(e)}")
+            logger.error(f"Combining failed: {str(e)}")
+            raise FileConcatenatorError(f"Combining error: {str(e)}")
 
     def _is_comment_line(self, line: str) -> bool:
         """Check if a line is a comment based on common comment markers."""
@@ -315,5 +315,5 @@ class FileConcatenator:
             raise FileConcatenatorError(f"Error accessing directory: {str(e)}")
 
     def get_statistics(self) -> dict:
-        """Get the concatenation statistics."""
+        """Get the combining statistics."""
         return self.stats.model_dump() 

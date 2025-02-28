@@ -27,8 +27,8 @@ class TestFileConcatenator(unittest.TestCase):
         # Use shutil.rmtree() for safer temporary directory removal
         shutil.rmtree(self.temp_dir)
 
-    def test_concatenation_with_gitignore(self):
-        # Test concatenation with a .gitignore file
+    def test_combining_with_gitignore(self):
+        # Test combining with a .gitignore file
         concatenator = FileConcatenator(repo_path=self.test_repo_path)
         output_file = concatenator.concatenate()
 
@@ -43,11 +43,11 @@ class TestFileConcatenator(unittest.TestCase):
             self.assertNotIn("File: dir1/file3.tmp", content) # Check for file path
             self.assertIn("File: file1.txt", content) # Check that the non-ignored file IS present
 
-    def test_concatenation_without_gitignore(self):
+    def test_combining_without_gitignore(self):
         # Remove the .gitignore file
         (self.test_repo_path / ".gitignore").unlink()
 
-        # Test concatenation without a .gitignore file (system ignores should still apply)
+        # Test combining without a .gitignore file (system ignores should still apply)
         concatenator = FileConcatenator(repo_path=self.test_repo_path)
         output_file = concatenator.concatenate()
 
@@ -63,8 +63,8 @@ class TestFileConcatenator(unittest.TestCase):
             self.assertIn("File: dir1/file3.tmp", content) # Should be included now
             self.assertNotIn("File: .hidden.txt", content) # Test a system ignore
 
-    def test_concatenation_with_additional_ignores(self):
-        # Test concatenation with additional ignore patterns
+    def test_combining_with_additional_ignores(self):
+        # Test combining with additional ignore patterns
         additional_ignores = ["file1.txt"]
         concatenator = FileConcatenator(repo_path=self.test_repo_path, additional_ignores=additional_ignores)
         output_file = concatenator.concatenate()

@@ -1,5 +1,5 @@
 """
-Stripe payment processing utilities for the File Concatenator service.
+Stripe payment processing utilities for the Combine Codes service.
 """
 
 import os
@@ -34,7 +34,7 @@ class Currency(str, Enum):
 
 class PaymentMetadata(BaseModel):
     """Payment metadata model."""
-    service: str = Field(default="file_concatenation", description="Service identifier")
+    service: str = Field(default="combine_codes_service", description="Service identifier")
     version: str = Field(default="1.0.0", description="Service version")
     environment: str = Field(default="development", description="Environment")
     repo_owner: Optional[str] = Field(None, description="GitHub repository owner")

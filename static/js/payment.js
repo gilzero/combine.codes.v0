@@ -13,7 +13,7 @@
  */
 
 import { showError } from './ui.js';
-import { processConcatenation, verifyPayment } from './api.js';
+import { processCombineCodes, verifyPayment } from './api.js';
 import { displayResults } from './ui.js';
 import { ErrorTypes, AppError } from './utils.js';
 
@@ -97,7 +97,7 @@ export async function verifyAndProcessPayment(sessionId) {
                 );
             }
             
-            const result = await processConcatenation(sessionId, repoUrl, githubToken);
+            const result = await processCombineCodes(sessionId, repoUrl, githubToken);
             displayResults(result);
         } else if (data.status === 'pending') {
             retryCount++;

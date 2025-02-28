@@ -12,6 +12,7 @@
  * @requires ./api.js
  * @requires ./payment.js
  * @requires ./utils.js
+ * @requires ./logger.js
  */
 
 // Repository and form handling
@@ -19,10 +20,15 @@ import { showError, updateProgress, updateRepositoryDetails } from './ui.js';
 import { preCheckRepository } from './api.js';
 import { handlePayment, setActiveCheckoutSession } from './payment.js';
 import { ErrorTypes, AppError } from './utils.js';
+import { Logger } from './logger.js';
 // import DOMPurify from 'dompurify';
+
+// Get logger for this module
+const logger = Logger.getLogger('repository');
 
 // Form handling
 export async function handleRepositorySubmit(event) {
+    logger.info('Repository form submitted');
     console.log('Form submission handler called');
     event.preventDefault();
     
@@ -32,96 +38,141 @@ export async function handleRepositorySubmit(event) {
     }
     
     try {
-        const form = event.target;
-        const repoUrl = form.querySelector('#repo-url')?.value.trim();
-        const githubToken = form.querySelector('#github-token')?.value.trim();
-
-        if (!repoUrl) {
+        // Get form data
+        const formData = new FormData(event.target);
+        const repoUrl = formData.get('repo_url');
+        const token = formData.get('token') || '';
+        
+        logger.info('Processing repository submission', { 
+            repoUrl: repoUrl,
+            hasToken: !!token 
+        });
+        
+        // Validate repository URL
+        if (!repoUrl || !repoUrl.includes('github.com')) {
+            logger.warn('Invalid GitHub URL submitted', { url: repoUrl });
             throw new AppError(
                 ErrorTypes.INVALID_GITHUB_URL,
-                'Repository URL is required'
+                'Please enter a valid GitHub repository URL'
             );
         }
-
-        // Validate URL format
-        const repoUrlPattern = /^https:\/\/github\.com\/[\w-]+\/[\w-]+$/;
-        if (!repoUrlPattern.test(repoUrl)) {
-            throw new AppError(
-                ErrorTypes.INVALID_GITHUB_URL,
-                'Invalid GitHub repository URL',
-                { url: repoUrl }
-            );
-        }
-
+        
         // Validate token format if provided
-        if (githubToken && !/^ghp_[a-zA-Z0-9]{36}$/.test(githubToken)) {
+        if (token && !/^ghp_[a-zA-Z0-9]{36}$/.test(token)) {
+            logger.warn('Invalid token format submitted');
             throw new AppError(
                 ErrorTypes.INVALID_TOKEN_FORMAT,
-                'Invalid GitHub token format',
-                { suggestion: 'Token should start with "ghp_" followed by 36 characters' }
+                'Invalid token format. GitHub tokens should start with "ghp_" followed by 36 characters'
             );
         }
-
-        // Show loading state
-        updateProgress(10);
-
-        // Pre-check repository
-        const preCheckData = await preCheckRepository(repoUrl, githubToken);
         
-        if (!preCheckData?.checkout_session_id) {
+        // Update UI to show progress
+        updateProgress(10, 'Checking repository...');
+        
+        // Pre-check repository
+        const response = await preCheckRepository(repoUrl, token);
+        
+        if (response.success) {
+            logger.info('Repository pre-check successful', { 
+                repoName: response.repository_name,
+                fileCount: response.file_count,
+                totalSize: response.total_size
+            });
+            
+            // Update UI with repository details
+            updateRepositoryDetails(
+                response.repository_name,
+                response.file_count,
+                response.total_size,
+                response.checkout_session_id,
+                response.checkout_url
+            );
+            
+            // Store checkout session for later use
+            setActiveCheckoutSession(response.checkout_session_id);
+            
+            // Update progress
+            updateProgress(100, 'Repository checked successfully!');
+        } else {
+            logger.error('Repository pre-check failed', { 
+                error: response.error,
+                details: response.details 
+            });
+            
             throw new AppError(
-                ErrorTypes.INVALID_DATA,
-                'Invalid pre-check response',
-                { response: preCheckData }
+                response.error,
+                response.message || 'Failed to check repository',
+                response.details || {}
             );
         }
-
-        // Update UI with repository details
-        updateRepositoryDetails(preCheckData);
-        setActiveCheckoutSession(preCheckData.checkout_session_id);
-
-        // Setup payment buttons
-        setupPaymentButtons();
-        updateProgress(100);
-
     } catch (error) {
-        console.error('Repository submission error:', error);
-        showError(error);
+        logger.error('Error in repository submission', { 
+            error: error.message,
+            type: error.type || 'unknown'
+        });
+        
+        // Handle errors
+        if (error instanceof AppError) {
+            showError(error.message);
+        } else {
+            showError('An unexpected error occurred. Please try again.');
+        }
+        
+        // Reset progress
+        updateProgress(0, '');
     } finally {
+        // Re-enable submit button
         if (submitButton) {
             submitButton.disabled = false;
         }
     }
 }
 
+// Input validation
 export function validateInput(event) {
     const input = event.target;
-    const sanitizedValue = DOMPurify.sanitize(input.value);
-    const repoUrlPattern = /^https:\/\/github\.com\/[\w-]+\/[\w-]+$/;
+    const value = input.value;
     
-    if (!repoUrlPattern.test(sanitizedValue)) {
-        input.setCustomValidity('Please enter a valid GitHub repository URL');
-    } else {
-        input.setCustomValidity('');
+    if (input.name === 'repo_url') {
+        logger.debug('Repository URL input changed', { value: value });
+        
+        // Simple validation for GitHub URLs
+        if (value && !value.includes('github.com')) {
+            input.setCustomValidity('Please enter a valid GitHub repository URL');
+        } else {
+            input.setCustomValidity('');
+        }
+    }
+    
+    if (input.name === 'token') {
+        logger.debug('Token input changed', { hasValue: !!value });
+        
+        // Validate token format if provided
+        if (value && !/^ghp_[a-zA-Z0-9]{36}$/.test(value)) {
+            input.setCustomValidity('Invalid token format. GitHub tokens should start with "ghp_" followed by 36 characters');
+        } else {
+            input.setCustomValidity('');
+        }
     }
 }
 
+// Setup payment buttons
 export function setupPaymentButtons() {
-    const cancelBtn = document.getElementById('cancel-payment');
-    const proceedBtn = document.getElementById('proceed-payment');
-
-    if (!cancelBtn || !proceedBtn) {
-        throw new AppError(
-            ErrorTypes.MISSING_ELEMENT,
-            'Payment buttons not found',
-            { elements: ['cancel-payment', 'proceed-payment'] }
-        );
+    logger.debug('Setting up payment buttons');
+    
+    const payWithCardButton = document.getElementById('pay-with-card');
+    if (payWithCardButton) {
+        payWithCardButton.addEventListener('click', function() {
+            logger.info('Pay with card button clicked');
+            handlePayment('card');
+        });
     }
-
-    cancelBtn.addEventListener('click', () => {
-        document.getElementById('confirmation-area').innerHTML = '';
-        document.getElementById('error-area').innerHTML = '';
-    });
-
-    proceedBtn.addEventListener('click', handlePayment);
-} 
+    
+    const payWithCryptoButton = document.getElementById('pay-with-crypto');
+    if (payWithCryptoButton) {
+        payWithCryptoButton.addEventListener('click', function() {
+            logger.info('Pay with crypto button clicked');
+            handlePayment('crypto');
+        });
+    }
+}

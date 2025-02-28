@@ -1,5 +1,5 @@
 """
-Services package for the File Concatenator application.
+Services package for the Combine Codes application.
 Contains service classes that implement business logic and coordinate between different components.
 """
 

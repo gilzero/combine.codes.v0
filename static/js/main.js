@@ -12,11 +12,13 @@
  * @requires ./repository.js
  * @requires ./visualization.js
  * @requires ./payment.js
+ * @requires ./logger.js
  */
 import { initializeTheme, toggleTheme } from './ui.js';
 import { handleRepositorySubmit, validateInput, setupPaymentButtons } from './repository.js';
 import { displayResults, exportAsImage, exportAsPDF, triggerConfetti } from './visualization.js';
 import { verifyAndProcessPayment } from './payment.js';
+import { Logger, logger } from './logger.js';
 
 // Global state
 export let ignorePatterns = [];
@@ -78,6 +80,19 @@ function setupButtonAnimations() {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize logger
+    Logger.configure({
+        minLevel: 0, // DEBUG level
+        enableConsole: true,
+        enableLocalStorage: true,
+        enableServerLogging: true,
+        serverLogEndpoint: '/api/logs',
+        serverLogThreshold: 2 // WARN level and above
+    });
+    
+    logger.info('Application initialized');
+    
+    // Initialize UI
     initializeTheme();
     initializeEventListeners();
     

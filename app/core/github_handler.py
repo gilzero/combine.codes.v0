@@ -64,7 +64,7 @@ class GitHubHandler:
         if self.config.cache_dir:
             self._cache_dir = Path(self.config.cache_dir)
         else:
-            self._cache_dir = Path(tempfile.gettempdir()) / "file_concatenator_cache"
+            self._cache_dir = Path(tempfile.gettempdir()) / "combine_codes_cache"
         
         # Ensure cache directory exists and is writable
         try:

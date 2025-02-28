@@ -2,7 +2,7 @@
 @fileoverview
 This module defines the GitHubService class, which provides high-level operations
 for validating and processing GitHub repositories. It includes methods for
-validating GitHub URLs, processing repositories by cloning and concatenating files,
+validating GitHub URLs, processing repositories by cloning and combining files,
 and handling various exceptions related to GitHub operations.
 """
 
@@ -94,7 +94,7 @@ class GitHubService:
         github_token: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Process a GitHub repository by cloning it and concatenating its files.
+        Process a GitHub repository by cloning it and combining its files.
         
         Args:
             repo_url (str): The repository URL to process.
@@ -105,7 +105,7 @@ class GitHubService:
             Dict[str, Any]: A dictionary containing processing results and statistics.
             
         Raises:
-            Various exceptions from github_handler and concatenator.
+            Various exceptions from github_handler and file processor.
         """
         try:
             # Validate repository URL first

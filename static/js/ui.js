@@ -5,7 +5,6 @@
  * - Toast notifications
  * - Error displays
  * - Progress updates
- * - Theme management
  * - Repository details display
  * 
  * @requires ./utils.js
@@ -108,10 +107,25 @@ function formatTimeRemaining(resetTime) {
 }
 
 export function updateProgress(value) {
-    const progressBar = document.querySelector('.progress-bar');
-    if (progressBar) {
+    const progressBarContainer = document.getElementById('progress-bar-container');
+    const progressBar = document.getElementById('progress-bar');
+    
+    if (progressBarContainer && progressBar) {
+        // Show the container when progress starts
+        if (value > 0 && value < 100) {
+            progressBarContainer.style.display = 'block';
+        }
+        
+        // Update the progress bar
         progressBar.style.width = `${value}%`;
         progressBar.setAttribute('aria-valuenow', value);
+        
+        // Hide the container when progress is complete
+        if (value >= 100) {
+            setTimeout(() => {
+                progressBarContainer.style.display = 'none';
+            }, 500); // Short delay to show the completed progress
+        }
     }
 }
 
@@ -235,42 +249,3 @@ export function updateRepositoryDetails(preCheckData) {
     
     document.getElementById('confirmation-area').innerHTML = detailsHtml;
 }
-
-// Theme handling
-export function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-bs-theme');
-    setTheme(currentTheme === 'dark' ? 'light' : 'dark');
-}
-
-export function setTheme(theme) {
-    try {
-        if (theme !== 'dark' && theme !== 'light') {
-            throw new Error('Invalid theme value');
-        }
-        document.documentElement.setAttribute('data-bs-theme', theme);
-        const icon = document.querySelector('[data-theme-icon]');
-        const toggle = document.querySelector('.theme-toggle');
-        icon.className = theme === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
-        toggle.setAttribute('aria-pressed', theme === 'dark');
-        localStorage.setItem('theme', theme);
-    } catch (error) {
-        console.error('Theme error:', error);
-        // Fallback to light theme
-        document.documentElement.setAttribute('data-bs-theme', 'light');
-    }
-}
-
-export function initializeTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-        setTheme(savedTheme);
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        setTheme('dark');
-    }
-
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-        if (!localStorage.getItem('theme')) {
-            setTheme(e.matches ? 'dark' : 'light');
-        }
-    });
-} 

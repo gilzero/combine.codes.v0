@@ -4,7 +4,7 @@
  * Manages all external API interactions:
  * - Repository pre-check requests
  * - Payment verification
- * - File concatenation requests
+ * - File combining requests
  * - Error handling and timeout management
  * - Response transformation
  * 
@@ -106,7 +106,7 @@ export async function verifyPayment(sessionId) {
     return response.json();
 }
 
-export async function processConcatenation(sessionId, repoUrl, githubToken) {
+export async function processCombineCodes(sessionId, repoUrl, githubToken) {
     const response = await fetch('/concatenate', {
         method: 'POST',
         headers: {
@@ -120,7 +120,7 @@ export async function processConcatenation(sessionId, repoUrl, githubToken) {
     });
 
     if (!response.ok) {
-        throw new Error('Concatenation failed');
+        throw new Error('Combine Codes failed');
     }
 
     return response.json();

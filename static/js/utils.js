@@ -12,6 +12,8 @@
  * All functions should be pure and stateless.
  */
 
+import { Logger } from './logger.js';
+
 // Utility functions for formatting, IDs, etc.
 /**
  * Generates a random 8-character hexadecimal ID
@@ -84,5 +86,13 @@ export class AppError extends Error {
         this.type = type;
         this.details = details;
         this.timestamp = new Date();
+        
+        // Log the error
+        const errorLogger = Logger.getLogger('error');
+        errorLogger.error(message, {
+            type: this.type,
+            details: this.details,
+            stack: this.stack
+        });
     }
-} 
+}

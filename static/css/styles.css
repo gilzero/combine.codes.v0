@@ -5,11 +5,6 @@
     --hover-transform: translateY(-2px);
 }
 
-[data-bs-theme="dark"] {
-    --tree-hover-bg: rgba(13, 110, 253, 0.2);
-    --primary-gradient: linear-gradient(135deg, #0d6efd, #084298);
-}
-
 body {
     transition: background-color 0.3s ease;
 }
@@ -254,23 +249,6 @@ body {
     opacity: 1;
 }
 
-/* Theme toggle */
-.theme-toggle {
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.3s;
-}
-
-.theme-toggle:hover {
-    background-color: var(--bs-secondary-bg);
-}
-
 /* Mobile optimizations */
 @media (max-width: 768px) {
     .card {
@@ -303,29 +281,4 @@ body {
 .form-control:focus-visible {
     box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
     outline: none;
-}
-
-/* Dark mode enhancements */
-[data-bs-theme="dark"] .card {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-}
-
-[data-bs-theme="dark"] .btn-primary {
-    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
-}
-
-/* Skip link */
-.skip-link {
-    position: absolute;
-    top: -40px;
-    left: 0;
-    background: var(--bs-primary);
-    color: white;
-    padding: 8px;
-    z-index: 1050;
-    transition: top 0.2s;
-}
-
-.skip-link:focus {
-    top: 0;
 }

@@ -1,6 +1,6 @@
 """
 @fileoverview
-This module defines Pydantic models for the File Concatenator application.
+This module defines Pydantic models for the Combine Codes application.
 These models are used for request and response validation, as well as
 representing various data structures and exceptions within the application.
 """
@@ -12,14 +12,14 @@ from datetime import datetime, timedelta
 from enum import Enum
 
 class ConcatenateRequest(BaseModel):
-    """Request model for file concatenation."""
+    """Request model for file combining."""
     repo_url: HttpUrl
     github_token: Optional[str] = None
     additional_ignores: Optional[List[str]] = []
     checkout_session_id: str
 
 class ConcatenateResponse(BaseModel):
-    """Response model for file concatenation."""
+    """Response model for file combining."""
     status: str
     message: str
     output_file: str
@@ -116,8 +116,8 @@ class FilterStats(BaseModel):
         d['most_effective_patterns'] = self.most_effective_patterns
         return d
 
-class ConcatenationStats(BaseModel):
-    """Model for overall concatenation statistics."""
+class CombiningStats(BaseModel):
+    """Model for overall combining statistics."""
     file_stats: FileStats = FileStats()
     dir_stats: DirectoryStats = DirectoryStats()
     filter_stats: FilterStats = FilterStats()
